@@ -16,6 +16,14 @@
 bool udpPassthrough = false;  // False = GPS neeeds to send GGA, VTG & HPR messages. True = GPS needs to send KSXT messages only.
 bool makeOGI = false;         //Set to true to make PAOGI messages. Else PNADA message will be made.
 bool baseLineCheck = false;   //Set to true to use IMU fusion with UM982
+const bool invertRoll= true;  //Used for IMU with dual antenna
+#define baseLineLimit 5       //Max CM differance in baseline
+
+// Heading correction can be enetered into the UM982 config so this can be 0. If in UM982 config, set here.
+// double headingcorr = 0;
+double headingcorr = 900;  //90deg heading correction (90deg*10)
+// Roll correction. Negative number = left; positive number = right.
+//double rollcorr = 50;
 
 // Kalman Filtering
 // e_mea: Measurement Uncertainty - How much do we expect to our measurement vary
@@ -41,6 +49,12 @@ const int32_t baudRTK = 9600;           // most are using Xbee radios with defau
 
 // Send data to AgIO via usb
 bool sendUSB = true;
+
+struct ConfigIP {
+    uint8_t ipOne = 192;
+    uint8_t ipTwo = 168;
+    uint8_t ipThree = 137;
+}; 
 /************************* End User Settings *********************/
 
 SimpleKalmanFilter rollFilter(rollMEA, rollEST, rollQ);
@@ -54,12 +68,6 @@ int msgBufLen = 0;
 
 #define ImuWire Wire        //SCL=19:A5 SDA=18:A4
 #define RAD_TO_DEG_X_10 572.95779513082320876798154814105
-
-//Swap BNO08x roll & pitch.
-//const bool swapRollPitch = false;
-
-const bool invertRoll= true;  //Used for IMU with dual antenna
-#define baseLineLimit 5       //Max CM differance in baseline
 
 #define REPORT_INTERVAL 20    //BNO report time, we want to keep reading it quick & offen. Its not timmed to anything just give constant data.
 uint32_t READ_BNO_TIME = 0;   //Used stop BNO data pile up (This version is without resetting BNO everytime)
@@ -86,12 +94,6 @@ void relPosDecode();
 void readBNO();
 void autosteerLoop();
 void ReceiveUdp();
-
-struct ConfigIP {
-    uint8_t ipOne = 192;
-    uint8_t ipTwo = 168;
-    uint8_t ipThree = 137;
-};  
 
 ConfigIP networkAddress;   //3 bytes
 
@@ -134,15 +136,6 @@ const uint8_t bno08xAddresses[] = { 0x4A, 0x4B };
 const int16_t nrBNO08xAdresses = sizeof(bno08xAddresses) / sizeof(bno08xAddresses[0]);
 uint8_t bno08xAddress;
 BNO080 bno08x;
-
-//Dual
-// Heading correction is enetered into the UM982 config so this can be 0.
-// double headingcorr = 0;
-double headingcorr = 900;  //90deg heading correction (90deg*10)
-// Heading correction 180 degrees, because normally the heading antenna is in front, but we have it at the back
-//double headingcorr = 1800;  // 180deg heading correction (180deg*10)
-// Roll correction. Negative number = left; positive number = right.
-//double rollcorr = 50;
 
 double baseline = 0;
 double rollDual = 0;
