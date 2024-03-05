@@ -13,15 +13,17 @@
 #endif // ARDUINO_TEENSY41
 
 /************************* User Settings *************************/
-bool udpPassthrough = false;  // False = GPS neeeds to send GGA, VTG & HPR messages. True = GPS needs to send KSXT messages only.
+bool udpPassthrough = true;  // False = GPS neeeds to send GGA, VTG & HPR messages. True = GPS needs to send KSXT messages only.
 bool makeOGI = false;         //Set to true to make PAOGI messages. Else PNADA message will be made.
 bool baseLineCheck = false;   //Set to true to use IMU fusion with UM982
 const bool invertRoll= true;  //Used for IMU with dual antenna
 #define baseLineLimit 5       //Max CM differance in baseline
 
-// Heading correction can be enetered into the UM982 config so this can be 0. If in UM982 config, set here.
-// double headingcorr = 0;
-double headingcorr = 900;  //90deg heading correction (90deg*10)
+// Heading correction can be enetered into the UM982 config or AOG GUI so this can be 0. If not in UM982 config or AOG GUI, set here.
+// Negative number = west, positive number = east.
+double headingcorr = 0;
+// double headingcorr = 900;  //90deg heading correction (90deg*10)
+// Roll correction can be entered in the AOG GUI. If not enter roll correction here.
 // Roll correction. Negative number = left; positive number = right.
 //double rollcorr = 50;
 
