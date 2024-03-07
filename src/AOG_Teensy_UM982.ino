@@ -352,6 +352,17 @@ void loop()
               gotDollar = false;
               memset( msgBuf, 0, 254 );
               msgBufLen = 0;
+              if (blink)
+              {
+                  digitalWrite(GGAReceivedLED, HIGH);
+              }
+              else
+              {
+                  digitalWrite(GGAReceivedLED, LOW);
+              }
+
+              blink = !blink;
+              digitalWrite(GPSGREEN_LED, HIGH);   //Turn green GPS LED ON
           }
       }
       else
