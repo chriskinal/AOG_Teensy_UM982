@@ -52,7 +52,7 @@
 ADS1115_lite adc(ADS1115_DEFAULT_ADDRESS);     // Use this for the 16-bit version ADS1115
 
 #include <IPAddress.h>
-#include "BNO08x_AOG.h"
+//#include "BNO08x_AOG.h"
 
 #ifdef ARDUINO_TEENSY41
 // ethernet
@@ -711,10 +711,6 @@ void ReceiveUdp()
                 helloFromAutoSteer[9] = switchByte;
 
                 SendUdp(helloFromAutoSteer, sizeof(helloFromAutoSteer), Eth_ipDestination, portDestination);
-                }
-                if(useBNO08x)
-                {
-                 SendUdp(helloFromIMU, sizeof(helloFromIMU), Eth_ipDestination, portDestination); 
                 }
             }
 
