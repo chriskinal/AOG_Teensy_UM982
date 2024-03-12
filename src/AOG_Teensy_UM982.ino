@@ -13,7 +13,7 @@
 #endif // ARDUINO_TEENSY41
 
 /************************* User Settings *************************/
-bool udpPassthrough = true;  // False = GPS neeeds to send GGA, VTG & HPR messages. True = GPS needs to send KSXT messages only.
+bool udpPassthrough = false;  // False = GPS neeeds to send GGA, VTG & HPR messages. True = GPS needs to send KSXT messages only.
 bool makeOGI = false;         //Set to true to make PAOGI messages. Else PNADA message will be made.
 bool baseLineCheck = false;   //Set to true to use IMU fusion with UM982
 const bool invertRoll= true;  //Used for IMU with dual antenna
