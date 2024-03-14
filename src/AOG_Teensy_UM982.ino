@@ -77,9 +77,6 @@ int msgBufLen = 0;
 #define ImuWire Wire        //SCL=19:A5 SDA=18:A4
 #define RAD_TO_DEG_X_10 572.95779513082320876798154814105
 
-#define REPORT_INTERVAL 20    //BNO report time, we want to keep reading it quick & offen. Its not timmed to anything just give constant data.
-uint32_t READ_BNO_TIME = 0;   //Used stop BNO data pile up (This version is without resetting BNO everytime)
-
 //Status LED's
 #define GGAReceivedLED 13         //Teensy onboard LED
 #define Power_on_LED 5            //Red
@@ -256,7 +253,7 @@ void setup()
   Serial.println("\r\nStarting Ethernet...");
   EthernetStart();
 
-  Serial.println("\r\nStarting BNO085...");
+  Serial.println("\r\nStarting BNO08x...");
 
   if (!rvc.begin(SerialRVC))
   { // connect to the sensor over hardware serial
