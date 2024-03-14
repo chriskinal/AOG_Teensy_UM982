@@ -5,6 +5,7 @@
 #include "zNMEAParser.h"
 #include <Wire.h>
 #include "BNO08x_AOG.h"
+#include "Adafruit_BNO08x_RVC.h"
 #include <SimpleKalmanFilter.h>
 // Ethernet Options (Teensy 4.1 Only)
 #ifdef ARDUINO_TEENSY41
@@ -45,22 +46,29 @@ float headingQ = 0.01;
 #define SerialAOG Serial                //AgIO USB conection
 #define SerialRTK Serial3               //RTK radio
 HardwareSerial* SerialGPS = &Serial7;   //Main postion receiver (GGA)
+HardwareSerial* SerialRVC = &Serial5;   //RVC port
 const int32_t baudAOG = 115200;         //USB connection speed
 const int32_t baudGPS = 460800;         //UM982 connection speed
 const int32_t baudRTK = 9600;           // most are using Xbee radios with default of 115200
+const int64_t baudRVC = 115200;         //RVC speed
+
+int rvcStartbyte = 0;
+int rvcDataread = 0;
 
 // Send data to AgIO via usb
-bool sendUSB = true;
+bool sendUSB = false;
 
 struct ConfigIP {
     uint8_t ipOne = 192;
     uint8_t ipTwo = 168;
-    uint8_t ipThree = 137;
+    uint8_t ipThree = 5;
 }; 
 /************************* End User Settings *********************/
 
 SimpleKalmanFilter rollFilter(rollMEA, rollEST, rollQ);
 SimpleKalmanFilter headingFilter(headingMEA, headingEST, headingQ);
+
+Adafruit_BNO08x_RVC rvc = Adafruit_BNO08x_RVC();
 
 bool gotCR = false;
 bool gotLF = false;
@@ -83,6 +91,9 @@ uint32_t READ_BNO_TIME = 0;   //Used stop BNO data pile up (This version is with
 #define AUTOSTEER_STANDBY_LED 11  //Red
 #define AUTOSTEER_ACTIVE_LED 12   //Green
 uint32_t gpsReadyTime = 0;        //Used for GGA timeout
+
+//Event output to UM982
+#define EventOUT 23 //Trigger UM982 event
 
 void errorHandler();
 void GGA_Handler();
@@ -153,12 +164,14 @@ uint8_t GPStxbuffer[serial_buffer_size];    //Extra serial tx buffer
 uint8_t GPS2rxbuffer[serial_buffer_size];   //Extra serial rx buffer
 uint8_t GPS2txbuffer[serial_buffer_size];   //Extra serial tx buffer
 uint8_t RTKrxbuffer[serial_buffer_size];    //Extra serial rx buffer
+uint8_t RVCrxbuffer[serial_buffer_size];    //Extra serial rx buffer
 
 /* A parser is declared with 3 handlers at most */
 NMEAParser<4> parser;
 
 bool isTriggered = false;
 bool blink = false;
+bool blinkRVC = false;
 
 bool Autosteer_running = true; //Auto set off in autosteer setup
 bool Ethernet_running = false; //Auto set on in ethernet setup
@@ -216,6 +229,9 @@ void setup()
   pinMode(GPSGREEN_LED, OUTPUT);
   pinMode(AUTOSTEER_STANDBY_LED, OUTPUT);
   pinMode(AUTOSTEER_ACTIVE_LED, OUTPUT);
+  pinMode(EventOUT, OUTPUT);
+
+  digitalWrite(EventOUT, LOW);
 
   // the dash means wildcard
  
@@ -237,7 +253,11 @@ void setup()
   SerialRTK.begin(baudRTK);
   SerialRTK.addMemoryForRead(RTKrxbuffer, serial_buffer_size);
 
-  Serial.println("SerialAOG, SerialRTK, SerialGPS initialized");
+  delay(10);
+  SerialRVC->begin(baudRVC);
+  SerialRVC->addMemoryForRead(RVCrxbuffer, serial_buffer_size);
+
+  Serial.println("SerialAOG, SerialRTK, SerialGPS, SerialRVC initialized");
 
   Serial.println("\r\nStarting AutoSteer...");
   autosteerSetup();
@@ -299,21 +319,43 @@ void setup()
   Serial.print("useBNO08x = ");
   Serial.println(useBNO08x);
 
+  if (!rvc.begin(SerialRVC)) { // connect to the sensor over hardware serial
+    Serial.println("Could not find RVC BNO08x!");
+    while (1)
+      delay(10);
+  }
+  else
+  {
+    Serial.println("RVC BNO08x found!");
+  }
+
   Serial.println("\r\nEnd setup, waiting for GPS...\r\n");
 }
 
 void loop()
 {
-    // Read incoming nmea from GPS
-    if (SerialGPS->available())
+    //Read incoming RVC
+    BNO08x_RVC_Data rvcData;
+    if ( rvc.read(&rvcData) )
     {
-      if (udpPassthrough)
+      Serial.print(micros());
+      Serial.print(" : Read RVC Data : ");
+      Serial.println(rvcData.roll);
+      rvcDataread ++;
+      if (rvcDataread == 10)
       {
-          //char mChar;
+        digitalWrite(EventOUT, HIGH);
+        digitalWrite(EventOUT, LOW);
+        Serial.print(micros());
+        Serial.print(" : ");
+        while (SerialGPS->available())
+        {
+          //Serial.println(SerialGPS->available());
           char incoming = SerialGPS->read();
           //Serial.println(incoming);
-          switch (incoming) {
-              case '$':
+          switch (incoming) 
+          {
+              case '#':
               msgBuf[msgBufLen] = incoming;
               msgBufLen ++;
               gotDollar = true;
@@ -338,21 +380,17 @@ void loop()
                   }
               break;
           }
-          if (gotCR && gotLF){
-              //Serial.print(msgBuf);
-              //Serial.println(msgBufLen);
-              if (sendUSB) { SerialAOG.write(msgBuf); } // Send USB GPS data if enabled in user settings
-              if (Ethernet_running){
-                  Eth_udpPAOGI.beginPacket(Eth_ipDestination, portDestination);
-                  Eth_udpPAOGI.write(msgBuf, msgBufLen);
-                  Eth_udpPAOGI.endPacket();
-              }
-              gotCR = false;
-              gotLF = false;
-              gotDollar = false;
-              memset( msgBuf, 0, 254 );
-              msgBufLen = 0;
-              if (blink)
+
+          if (gotCR && gotLF)
+          {
+            Serial.print(msgBuf);
+            //Serial.println(msgBufLen);
+            gotCR = false;
+            gotLF = false;
+            gotDollar = false;
+            memset( msgBuf, 0, 254 );
+            msgBufLen = 0;
+            if (blink)
               {
                   digitalWrite(GGAReceivedLED, HIGH);
               }
@@ -364,10 +402,12 @@ void loop()
               blink = !blink;
               digitalWrite(GPSGREEN_LED, HIGH);   //Turn green GPS LED ON
           }
-      }
-      else
-      {
-        parser << SerialGPS->read();
+        }
+        Serial.print(micros());
+        Serial.print(" : ");
+        Serial.println(rvcData.roll);
+
+        rvcDataread = 0;
       }
     }
 
