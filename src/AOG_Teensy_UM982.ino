@@ -102,8 +102,6 @@ void autosteerSetup();
 void EthernetStart();
 void udpNtrip();
 void BuildNmea();
-//void relPosDecode();
-//void readBNO();
 void autosteerLoop();
 void ReceiveUdp();
 
