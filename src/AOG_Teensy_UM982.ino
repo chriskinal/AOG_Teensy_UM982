@@ -3,8 +3,6 @@
 // Teensy Serial 7 TX (29) to F9P Position receiver RX1 (RTCM data for RTK)
 //
 #include "zNMEAParser.h"
-#include <Wire.h>
-#include "BNO08x_AOG.h"
 #include "Adafruit_BNO08x_RVC.h"
 #include <SimpleKalmanFilter.h>
 // Ethernet Options (Teensy 4.1 Only)
@@ -99,12 +97,13 @@ void errorHandler();
 void GGA_Handler();
 void VTG_Handler();
 void HPR_Handler();
+void imuHandler();
 void autosteerSetup();
 void EthernetStart();
 void udpNtrip();
 void BuildNmea();
-void relPosDecode();
-void readBNO();
+//void relPosDecode();
+//void readBNO();
 void autosteerLoop();
 void ReceiveUdp();
 
@@ -143,12 +142,6 @@ bool dualReadyRelPos = false;
 
 // booleans to see if we are using BNO08x
 bool useBNO08x = false;
-
-// BNO08x address variables to check where it is
-const uint8_t bno08xAddresses[] = { 0x4A, 0x4B };
-const int16_t nrBNO08xAdresses = sizeof(bno08xAddresses) / sizeof(bno08xAddresses[0]);
-uint8_t bno08xAddress;
-BNO080 bno08x;
 
 double baseline = 0;
 double rollDual = 0;
@@ -267,59 +260,8 @@ void setup()
 
   Serial.println("\r\nStarting BNO085...");
 
-  // Initialize BNO085 if present.
-  uint8_t error;
-  ImuWire.begin();
-  
-  for (int16_t i = 0; i < nrBNO08xAdresses; i++)
-  {
-      bno08xAddress = bno08xAddresses[i];
-
-      //Serial.print("\r\nChecking for BNO08X on ");
-      //Serial.println(bno08xAddress, HEX);
-      ImuWire.beginTransmission(bno08xAddress);
-      error = ImuWire.endTransmission();
-
-      if (error == 0)
-      {
-          //Serial.println("Error = 0");
-          Serial.print("0x");
-          Serial.print(bno08xAddress, HEX);
-          Serial.println(" BNO08X Ok.");
-
-          // Initialize BNO080 lib
-          if (bno08x.begin(bno08xAddress, ImuWire)) //??? Passing NULL to non pointer argument, remove maybe ???
-          {
-              //Increase I2C data rate to 400kHz
-              ImuWire.setClock(400000); 
-
-              delay(300);
-
-              // Use gameRotationVector and set REPORT_INTERVAL
-              bno08x.enableGameRotationVector(REPORT_INTERVAL);
-              useBNO08x = true;
-          }
-          else
-          {
-              Serial.println("BNO080 not detected at given I2C address.");
-          }
-      }
-      else
-      {
-          //Serial.println("Error = 4");
-          Serial.print("0x");
-          Serial.print(bno08xAddress, HEX);
-          Serial.println(" BNO08X not Connected or Found");
-      }
-      if (useBNO08x) break;
-  }
-  
-
-  delay(100);
-  Serial.print("useBNO08x = ");
-  Serial.println(useBNO08x);
-
-  if (!rvc.begin(SerialRVC)) { // connect to the sensor over hardware serial
+  if (!rvc.begin(SerialRVC))
+  { // connect to the sensor over hardware serial
     Serial.println("Could not find RVC BNO08x!");
     while (1)
       delay(10);
@@ -327,6 +269,7 @@ void setup()
   else
   {
     Serial.println("RVC BNO08x found!");
+    useBNO08x = true;
   }
 
   Serial.println("\r\nEnd setup, waiting for GPS...\r\n");
@@ -431,13 +374,6 @@ void loop()
         dualReadyRelPos = false;
     }
 
-    //Read BNO
-    if((systick_millis_count - READ_BNO_TIME) > REPORT_INTERVAL && useBNO08x)
-    {
-      READ_BNO_TIME = systick_millis_count;
-      readBNO();
-    }
-    
     if (Autosteer_running) autosteerLoop();
     else ReceiveUdp();
     
