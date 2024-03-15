@@ -337,6 +337,7 @@ void loop()
             gotDollar = false;
             memset( msgBuf, 0, 254 );
             memset( latitude, 0, 15 );
+            memset( longitude, 0, 15 );
             msgBufLen = 0;
             if (blink)
               {
