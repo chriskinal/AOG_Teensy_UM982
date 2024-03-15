@@ -6,9 +6,9 @@ char nmea[100];
 
 // GGA
 char fixTime[12];
-char latitude[15];
+//char latitude[15];
 char latNS[3];
-char longitude[15];
+//char longitude[15];
 char lonEW[3];
 char fixQuality[2];
 char numSats[4];
@@ -24,6 +24,28 @@ char speedKnots[10] = { };
 char umHeading[8];
 char umRoll[8];
 int solQuality;
+
+//SXT
+char timeFix[18];
+// char fixTime[18];
+// char longitude[13];
+// char latitude[12];
+// char height[11];
+// char heading[7];
+// char pitch[7];
+// char track[7];
+// char velocity[8];
+// char roll[7];
+// char posQual[2];
+// char headQual[2];
+// char hSats[3];
+// char mSats[3];
+// char east[8];
+// char north[8];
+// char up[8];
+// char eastVel[8];
+// char northVel[8];
+// char upVel[8];
 
 // IMU
 char imuHeading[6];
@@ -144,6 +166,32 @@ void HPR_Handler()
            dualReadyRelPos = true;   //RelPos ready is true so PAOGI will send when the GGA is also ready
        }
     }
+}
+
+void SXT_Handler()
+{
+  // parser.getArg(0, timeFix);
+  parser.getArg(1, longitude);
+  parser.getArg(2, latitude);
+  // parser.getArg(3, height);
+  // parser.getArg(4, heading);
+  // parser.getArg(5, pitch);
+  // parser.getArg(6, track);
+  // parser.getArg(7, velocity);
+  // parser.getArg(8, roll);
+  // parser.getArg(9, posQual);
+  // parser.getArg(10, headQual);
+  // parser.getArg(11, hSats);
+  // parser.getArg(12, mSats);
+  // parser.getArg(13, east);
+  // parser.getArg(14, north);
+  // parser.getArg(15, up);
+  // parser.getArg(16, eastVel);
+  // parser.getArg(17, northVel);
+  // parser.getArg(18, upVel);
+  // calculateIMU();
+  // imuDualDelta();
+  // BuildKsxt();
 }
 
 void imuHandler()

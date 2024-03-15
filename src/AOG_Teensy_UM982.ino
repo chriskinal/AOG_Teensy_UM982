@@ -47,6 +47,7 @@ HardwareSerial* SerialGPS = &Serial7;   //Main postion receiver (GGA)
 HardwareSerial* SerialRVC = &Serial5;   //RVC port
 const int32_t baudAOG = 115200;         //USB connection speed
 const int32_t baudGPS = 460800;         //UM982 connection speed
+//const int32_t baudGPS = 921600;         //UM982 connection speed
 const int32_t baudRTK = 9600;           // most are using Xbee radios with default of 115200
 const int64_t baudRVC = 115200;         //RVC speed
 
@@ -67,6 +68,9 @@ SimpleKalmanFilter rollFilter(rollMEA, rollEST, rollQ);
 SimpleKalmanFilter headingFilter(headingMEA, headingEST, headingQ);
 
 Adafruit_BNO08x_RVC rvc = Adafruit_BNO08x_RVC();
+
+char latitude[15];
+char longitude[15];
 
 bool gotCR = false;
 bool gotLF = false;
@@ -94,6 +98,7 @@ void errorHandler();
 void GGA_Handler();
 void VTG_Handler();
 void HPR_Handler();
+void SXT_Handler();
 void imuHandler();
 void autosteerSetup();
 void EthernetStart();
@@ -155,7 +160,7 @@ uint8_t RTKrxbuffer[serial_buffer_size];    //Extra serial rx buffer
 uint8_t RVCrxbuffer[serial_buffer_size];    //Extra serial rx buffer
 
 /* A parser is declared with 3 handlers at most */
-NMEAParser<4> parser;
+NMEAParser<5> parser;
 
 bool isTriggered = false;
 bool blink = false;
@@ -227,6 +232,7 @@ void setup()
   parser.addHandler("G-GGA", GGA_Handler);
   parser.addHandler("G-VTG", VTG_Handler);
   parser.addHandler("G-HPR", HPR_Handler);
+  parser.addHandler("KSXT", SXT_Handler);
 
   delay(10);
   Serial.begin(baudAOG);
@@ -276,24 +282,26 @@ void loop()
     BNO08x_RVC_Data rvcData;
     if ( rvc.read(&rvcData) )
     {
-      Serial.print(micros());
-      Serial.print(" : Read RVC Data : ");
-      Serial.println(rvcData.roll);
+      // Serial.print(micros());
+      // Serial.print(" : Read RVC Data : ");
+      // Serial.println(rvcData.roll);
       rvcDataread ++;
       if (rvcDataread == 10)
       {
+        Serial.println("--Begin Record--");
+        Serial.print(micros());
+        Serial.print(" GPS: ");
         digitalWrite(EventOUT, HIGH);
         digitalWrite(EventOUT, LOW);
-        Serial.print(micros());
-        Serial.print(" : ");
         while (SerialGPS->available())
         {
           //Serial.println(SerialGPS->available());
           char incoming = SerialGPS->read();
+          parser << incoming;
           //Serial.println(incoming);
           switch (incoming) 
           {
-              case '#':
+              case '$':
               msgBuf[msgBufLen] = incoming;
               msgBufLen ++;
               gotDollar = true;
@@ -322,11 +330,13 @@ void loop()
           if (gotCR && gotLF)
           {
             Serial.print(msgBuf);
-            //Serial.println(msgBufLen);
+            Serial.println(latitude);
+            Serial.println(longitude);
             gotCR = false;
             gotLF = false;
             gotDollar = false;
             memset( msgBuf, 0, 254 );
+            memset( latitude, 0, 15 );
             msgBufLen = 0;
             if (blink)
               {
@@ -342,8 +352,9 @@ void loop()
           }
         }
         Serial.print(micros());
-        Serial.print(" : ");
+        Serial.print(" RVC: ");
         Serial.println(rvcData.roll);
+        Serial.println("--End Record--");
 
         rvcDataread = 0;
       }
