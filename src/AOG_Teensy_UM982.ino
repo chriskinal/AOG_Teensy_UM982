@@ -5,6 +5,7 @@
 #include "zNMEAParser.h"
 #include "Adafruit_BNO08x_RVC.h"
 #include <SimpleKalmanFilter.h>
+#include <Alib0.h>
 // Ethernet Options (Teensy 4.1 Only)
 #ifdef ARDUINO_TEENSY41
 #include <NativeEthernet.h>
@@ -68,6 +69,10 @@ SimpleKalmanFilter rollFilter(rollMEA, rollEST, rollQ);
 SimpleKalmanFilter headingFilter(headingMEA, headingEST, headingQ);
 
 Adafruit_BNO08x_RVC rvc = Adafruit_BNO08x_RVC();
+BNO08x_RVC_Data rvcData;
+bool greenLight = true;
+float reqData;
+float recData;
 
 char latitude[15];
 char longitude[15];
@@ -276,32 +281,37 @@ void setup()
   Serial.println("\r\nEnd setup, waiting for GPS...\r\n");
 }
 
-void loop()
+void requestData() // Taskify the request. 
 {
-    //Read incoming RVC
-    BNO08x_RVC_Data rvcData;
-    if ( rvc.read(&rvcData) )
-    {
-      // Serial.print(micros());
-      // Serial.print(" : Read RVC Data : ");
-      // Serial.println(rvcData.roll);
-      rvcDataread ++;
-      if (rvcDataread == 10)
-      {
-        Serial.println("--Begin Record--");
-        Serial.print(micros());
-        Serial.print(" GPS: ");
-        digitalWrite(EventOUT, HIGH);
-        digitalWrite(EventOUT, LOW);
+  taskBegin();
+  taskWaitFor(greenLight); //Make sure GPS data and RVC data have been read before requesting more.
+    Serial.println("--Begin Record--");
+    Serial.print(micros());
+    Serial.println(" :Begin Micros");
+    Serial.print("GPS Data Buffer(bytes): "); 
+    Serial.println(SerialGPS->available()); //Show GPS serial buffer empty.
+    rvc.read(&rvcData); // Read the next available data set from the 100Hz RVC stream.
+    digitalWrite(EventOUT, HIGH); // Send begining of pulse to UM982. Triggers on rising edge.
+    reqData = micros();
+    Serial.print(reqData);
+    Serial.println(" :Req RVC Data & Send UM982 Event Pulse");
+    digitalWrite(EventOUT, LOW); //End of UM982 event pulse.
+    greenLight = false; //Don't send UM982 event pulses until GPS data has been received.
+  taskEnd()
+}
+
+void processGPS()
+{
+      taskBegin();
+      taskWaitFor(SerialGPS->available());
         while (SerialGPS->available())
         {
-          //Serial.println(SerialGPS->available());
           char incoming = SerialGPS->read();
           parser << incoming;
           //Serial.println(incoming);
           switch (incoming) 
           {
-              case '$':
+              case '#':
               msgBuf[msgBufLen] = incoming;
               msgBufLen ++;
               gotDollar = true;
@@ -330,8 +340,16 @@ void loop()
           if (gotCR && gotLF)
           {
             Serial.print(msgBuf);
-            Serial.println(latitude);
-            Serial.println(longitude);
+            Serial.print("IMU Roll: ");
+            Serial.println(rvcData.roll);
+            recData = micros();
+            Serial.print(recData);
+            Serial.println(" :Rec'd & printed RVC and GPS data");
+            Serial.print("Elapsed time data Req to Rec'd: ");
+            Serial.print( recData - reqData );
+            Serial.print(" micros | ");
+            Serial.print( (recData - reqData) / 1000 );
+            Serial.println(" millis");
             gotCR = false;
             gotLF = false;
             gotDollar = false;
@@ -339,27 +357,163 @@ void loop()
             memset( latitude, 0, 15 );
             memset( longitude, 0, 15 );
             msgBufLen = 0;
-            if (blink)
-              {
-                  digitalWrite(GGAReceivedLED, HIGH);
-              }
-              else
-              {
-                  digitalWrite(GGAReceivedLED, LOW);
-              }
-
-              blink = !blink;
-              digitalWrite(GPSGREEN_LED, HIGH);   //Turn green GPS LED ON
+            digitalWrite(GPSGREEN_LED, HIGH);   //Turn green GPS LED ON
+            greenLight = true; // Allow requesting data task to proceed.
+            reqData = 0;
+            recData = 0;
+            Serial.print("GPS Data Buffer(bytes): ");
+            Serial.println(SerialGPS->available()); //Show all GPS data has been read and buffer is empty.
+            Serial.print(micros());
+            Serial.println(" :End Micros");
+            Serial.println("--End Record--");
+            Serial.println();
           }
         }
-        Serial.print(micros());
-        Serial.print(" RVC: ");
-        Serial.println(rvcData.roll);
-        Serial.println("--End Record--");
+      taskEnd();
+}
 
-        rvcDataread = 0;
-      }
-    }
+void loop()
+{
+    requestData();
+    processGPS();
+
+    // while (SerialGPS->available())
+    // {
+    //   //Serial.println(SerialGPS->available());
+    //   char incoming = SerialGPS->read();
+    //   parser << incoming;
+    //   //Serial.println(incoming);
+    //   switch (incoming) 
+    //   {
+    //       case '#':
+    //       msgBuf[msgBufLen] = incoming;
+    //       msgBufLen ++;
+    //       gotDollar = true;
+    //       break;
+    //       case '\r':
+    //       msgBuf[msgBufLen] = incoming;
+    //       msgBufLen ++;
+    //       gotCR = true;
+    //       gotDollar = false;
+    //       break;
+    //       case '\n':
+    //       msgBuf[msgBufLen] = incoming;
+    //       msgBufLen ++;
+    //       gotLF = true;
+    //       gotDollar = false;
+    //       break;
+    //       default:
+    //       if (gotDollar)
+    //           {
+    //           msgBuf[msgBufLen] = incoming;
+    //           msgBufLen ++;
+    //           }
+    //       break;
+    //   }
+
+    //   if (gotCR && gotLF)
+    //   {
+        
+    //     Serial.print(msgBuf);
+    //     Serial.print("IMU Roll: ");
+    //     Serial.println(rvcData.roll);
+    //     gotCR = false;
+    //     gotLF = false;
+    //     gotDollar = false;
+    //     memset( msgBuf, 0, 254 );
+    //     memset( latitude, 0, 15 );
+    //     memset( longitude, 0, 15 );
+    //     msgBufLen = 0;
+    //     digitalWrite(GPSGREEN_LED, HIGH);   //Turn green GPS LED ON
+    //   }
+    // }
+
+
+    // //Read incoming RVC
+    // BNO08x_RVC_Data rvcData;
+    // if ( rvc.read(&rvcData) )
+    // {
+    //   // Serial.print(micros());
+    //   // Serial.print(" : Read RVC Data : ");
+    //   // Serial.println(rvcData.roll);
+    //   rvcDataread ++;
+    //   if (rvcDataread == 5)
+    //   {
+    //     Serial.println("--Begin Record--");
+    //     Serial.print("GPS Data: ");
+    //     Serial.println(SerialGPS->available());
+    //     Serial.print(micros());
+    //     Serial.print(" GPS: ");
+    //     digitalWrite(EventOUT, HIGH);
+    //     digitalWrite(EventOUT, LOW);
+    //     while (SerialGPS->available())
+    //     {
+    //       //Serial.println(SerialGPS->available());
+    //       char incoming = SerialGPS->read();
+    //       parser << incoming;
+    //       //Serial.println(incoming);
+    //       switch (incoming) 
+    //       {
+    //           case '#':
+    //           msgBuf[msgBufLen] = incoming;
+    //           msgBufLen ++;
+    //           gotDollar = true;
+    //           break;
+    //           case '\r':
+    //           msgBuf[msgBufLen] = incoming;
+    //           msgBufLen ++;
+    //           gotCR = true;
+    //           gotDollar = false;
+    //           break;
+    //           case '\n':
+    //           msgBuf[msgBufLen] = incoming;
+    //           msgBufLen ++;
+    //           gotLF = true;
+    //           gotDollar = false;
+    //           break;
+    //           default:
+    //           if (gotDollar)
+    //               {
+    //               msgBuf[msgBufLen] = incoming;
+    //               msgBufLen ++;
+    //               }
+    //           break;
+    //       }
+
+    //       if (gotCR && gotLF)
+    //       {
+    //         Serial.print(msgBuf);
+    //         Serial.println(latitude);
+    //         Serial.println(longitude);
+    //         gotCR = false;
+    //         gotLF = false;
+    //         gotDollar = false;
+    //         memset( msgBuf, 0, 254 );
+    //         memset( latitude, 0, 15 );
+    //         memset( longitude, 0, 15 );
+    //         msgBufLen = 0;
+    //         if (blink)
+    //           {
+    //               digitalWrite(GGAReceivedLED, HIGH);
+    //           }
+    //           else
+    //           {
+    //               digitalWrite(GGAReceivedLED, LOW);
+    //           }
+
+    //           blink = !blink;
+    //           digitalWrite(GPSGREEN_LED, HIGH);   //Turn green GPS LED ON
+    //       }
+    //     }
+    //     Serial.print(micros());
+    //     Serial.print(" RVC: ");
+    //     Serial.println(rvcData.roll);
+    //     Serial.print("GPS Data: ");
+    //     Serial.println(SerialGPS->available());
+    //     Serial.println("--End Record--");
+    //     rvcDataread = 0;
+    //   }
+    // }
 
     udpNtrip();
 
