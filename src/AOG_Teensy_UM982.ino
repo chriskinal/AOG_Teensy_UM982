@@ -5,7 +5,7 @@
 #include "zNMEAParser.h"
 #include "Adafruit_BNO08x_RVC.h"
 #include <SimpleKalmanFilter.h>
-#include <Alib0.h>
+#include <zAlib0.h>
 // Ethernet Options (Teensy 4.1 Only)
 #ifdef ARDUINO_TEENSY41
 #include <NativeEthernet.h>
@@ -64,6 +64,16 @@ struct ConfigIP {
     uint8_t ipThree = 5;
 }; 
 /************************* End User Settings *********************/
+
+struct emptyRVC {
+  float yaw = 0.0,     ///< Yaw in Degrees
+      pitch = 0.0,     ///< Pitch in Degrees
+      roll = 0.0;      ///< Roll in Degrees
+  float x_accel = 0.0, ///< The X acceleration value in m/s^2
+      y_accel = 0.0,   ///< The Y acceleration value in m/s^2
+      z_accel = 0.0;   ///< The Z acceleration value in m/s^2
+
+};
 
 SimpleKalmanFilter rollFilter(rollMEA, rollEST, rollQ);
 SimpleKalmanFilter headingFilter(headingMEA, headingEST, headingQ);
