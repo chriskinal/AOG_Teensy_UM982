@@ -293,7 +293,7 @@ void loop()
 {
   if ( rvc.read(&rvcData) )
   {
-    //Serial.println( millis() );
+    Serial.println( millis() );
     digitalWrite(EventOUT, HIGH); // Send begining of pulse to UM982. Triggers on rising edge.
     digitalWrite(EventOUT, LOW); //End of UM982 event pulse.
     if (blink)
@@ -351,6 +351,7 @@ void loop()
       gotDollar = false;
       memset( msgBuf, 0, 254 );
       msgBufLen = 0;
+      delay(100);
     }
   }
 
