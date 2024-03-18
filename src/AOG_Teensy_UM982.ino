@@ -20,7 +20,7 @@ bool makeOGI = false;         //Set to true to make PAOGI messages. Else PNADA m
 bool baseLineCheck = false;   //Set to true to use IMU fusion with UM982
 const bool invertRoll= true;  //Used for IMU with dual antenna
 #define baseLineLimit 5       //Max CM differance in baseline
-float report_hertz = 10; // Currently AOG supports up to 10Hz. Anything above may produce unpredictable results in AOG.
+int report_interval = 100; // Currently AOG supports up to 10Hz. Anything below 100ms may produce unpredictable results in AOG.
 
 // Heading correction can be enetered into the UM982 config or AOG GUI so this can be 0. If not in UM982 config or AOG GUI, set here.
 // Negative number = west, positive number = east.
@@ -75,7 +75,6 @@ Adafruit_BNO08x_RVC rvc = Adafruit_BNO08x_RVC();
 BNO08x_RVC_Data rvcData;
 elapsedMillis bnoTimer;
 bool greenLight = true;
-float report_interval = 0;
 float reqData;
 float recData;
 
@@ -293,7 +292,7 @@ void setup()
 
 void loop()
 {
-  if ( rvc.read(&rvcData) && bnoTimer > 100 )
+  if ( rvc.read(&rvcData) && bnoTimer > report_interval )
   {
     Serial.println( millis() );
     digitalWrite(EventOUT, HIGH); // Send begining of pulse to UM982. Triggers on rising edge.
