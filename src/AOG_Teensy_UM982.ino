@@ -5,6 +5,7 @@
 #include "zNMEAParser.h"
 #include "UM982_Parser.h"
 #include "Adafruit_BNO08x_RVC.h"
+#include <elapsedMillis.h>
 #include <SimpleKalmanFilter.h>
 
 // Ethernet Options (Teensy 4.1 Only)
@@ -72,6 +73,7 @@ SimpleKalmanFilter headingFilter(headingMEA, headingEST, headingQ);
 
 Adafruit_BNO08x_RVC rvc = Adafruit_BNO08x_RVC();
 BNO08x_RVC_Data rvcData;
+elapsedMillis bnoTimer;
 bool greenLight = true;
 float report_interval = 0;
 float reqData;
@@ -291,7 +293,7 @@ void setup()
 
 void loop()
 {
-  if ( rvc.read(&rvcData) )
+  if ( rvc.read(&rvcData) && bnoTimer > 100 )
   {
     Serial.println( millis() );
     digitalWrite(EventOUT, HIGH); // Send begining of pulse to UM982. Triggers on rising edge.
