@@ -295,7 +295,6 @@ void loop()
   if ( rvc.read(&rvcData) && bnoTimer > report_interval )
   {
     Serial.println( millis() );
-    Serial.println(report_interval);
     digitalWrite(EventOUT, HIGH); // Send begining of pulse to UM982. Triggers on rising edge.
     digitalWrite(EventOUT, LOW); //End of UM982 event pulse.
     if (blink)
