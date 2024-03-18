@@ -351,7 +351,6 @@ void loop()
       gotDollar = false;
       memset( msgBuf, 0, 254 );
       msgBufLen = 0;
-      delay(100);
     }
   }
 
