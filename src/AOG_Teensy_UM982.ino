@@ -20,7 +20,7 @@ bool makeOGI = false;         //Set to true to make PAOGI messages. Else PNADA m
 bool baseLineCheck = false;   //Set to true to use IMU fusion with UM982
 const bool invertRoll= true;  //Used for IMU with dual antenna
 #define baseLineLimit 5       //Max CM differance in baseline
-int report_interval = 100; // Currently AOG supports up to 10Hz. Anything below 100ms may produce unpredictable results in AOG.
+byte report_interval = 100; // Currently AOG supports up to 10Hz. Anything below 100ms may produce unpredictable results in AOG.
 
 // Heading correction can be enetered into the UM982 config or AOG GUI so this can be 0. If not in UM982 config or AOG GUI, set here.
 // Negative number = west, positive number = east.
@@ -295,6 +295,7 @@ void loop()
   if ( rvc.read(&rvcData) && bnoTimer > report_interval )
   {
     Serial.println( millis() );
+    Serial.println(report_interval);
     digitalWrite(EventOUT, HIGH); // Send begining of pulse to UM982. Triggers on rising edge.
     digitalWrite(EventOUT, LOW); //End of UM982 event pulse.
     if (blink)
