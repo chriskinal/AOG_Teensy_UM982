@@ -6,9 +6,9 @@ char nmea[100];
 
 // GGA
 char fixTime[12];
-//char latitude[15];
+char latitude[15];
 char latNS[3];
-//char longitude[15];
+char longitude[15];
 char lonEW[3];
 char fixQuality[2];
 char numSats[4];
@@ -56,7 +56,8 @@ char imuYawRate[6];
 // If odd characters showed up.
 void errorHandler()
 {
-  //nothing at the moment
+  Serial.print("*** Error : ");
+  Serial.println(UMparser.error());
 }
 
 void GGA_Handler() //Rec'd GGA
@@ -192,6 +193,39 @@ void SXT_Handler()
   // calculateIMU();
   // imuDualDelta();
   // BuildKsxt();
+}
+
+void EVT_Handler()
+{
+  char tmpSeconds[7];
+  char tmpSubsec[11];
+  char tmpLat[16];
+  char tmpLon[17];
+  char tmpFixq[15];
+  char latDev[9];
+  char lonDev[9];
+  char tmpAlt[9];
+  char tmpEvel[7];
+  char tmpNvel[7];
+
+//ENU: Speed = sqrt(East^2 + North^2)
+//HDOP = sqrt(latDev^2 + lonDev^2)
+
+  UMparser.getArg(14, tmpSeconds);
+  UMparser.getArg(15, tmpSubsec);
+  UMparser.getArg(20, tmpFixq);
+  UMparser.getArg(21, tmpLat);
+  UMparser.getArg(22, tmpLon);
+  UMparser.getArg(23, tmpAlt);
+  UMparser.getArg(26, latDev);
+  UMparser.getArg(27, lonDev);
+  UMparser.getArg(30, ageDGPS);
+  UMparser.getArg(33, numSats);
+  UMparser.getArg(36, tmpEvel);
+  UMparser.getArg(37, tmpNvel);
+  Serial.println(tmpLat);
+
+
 }
 
 void imuHandler()
