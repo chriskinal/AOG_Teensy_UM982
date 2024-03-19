@@ -197,35 +197,114 @@ void SXT_Handler()
 
 void EVT_Handler()
 {
-  char tmpSeconds[7];
-  char tmpSubsec[11];
-  char tmpLat[16];
-  char tmpLon[17];
-  char tmpFixq[15];
-  char latDev[9];
-  char lonDev[9];
-  char tmpAlt[9];
-  char tmpEvel[7];
-  char tmpNvel[7];
+  char fakeKSXT[254];
+  memset( fakeKSXT, 0, 254 );
 
-//ENU: Speed = sqrt(East^2 + North^2)
-//HDOP = sqrt(latDev^2 + lonDev^2)
+  char tmpSeconds[11];
+  char tmpLat[16];
+  char tmpLon[16];
+  char tmpFixq[16];
+  char tmpPosq[2];
+  char tmpAlt[7];
+  float tmpEvel;
+  float tmpNvel;
+  float tmpVel;
+  char tmpSpeed[10];
+  char tmpYaw[7];
+  char tmpRoll[7];
+  String ksxtCRC = "";
 
   UMparser.getArg(14, tmpSeconds);
-  UMparser.getArg(15, tmpSubsec);
   UMparser.getArg(20, tmpFixq);
   UMparser.getArg(21, tmpLat);
   UMparser.getArg(22, tmpLon);
   UMparser.getArg(23, tmpAlt);
-  UMparser.getArg(26, latDev);
-  UMparser.getArg(27, lonDev);
   UMparser.getArg(30, ageDGPS);
   UMparser.getArg(33, numSats);
   UMparser.getArg(36, tmpEvel);
   UMparser.getArg(37, tmpNvel);
-  Serial.println(tmpLat);
+
+  tmpVel = sqrt( tmpNvel*tmpNvel + tmpEvel*tmpEvel );
+  dtostrf( tmpVel, 3, 2, tmpSpeed);
+  dtostrf( yaw, 3, 2, tmpYaw);
+  dtostrf( roll, 3, 2, tmpRoll);
+
+  memset(tmpPosq, 0, 2);
+  if ( strcmp(tmpFixq, "SINGLE") == 0 ) { tmpPosq[0] = '1'; }
+  if ( strcmp(tmpFixq, "L1_INT") == 0 ) { tmpPosq[0] = '2'; }
+  if ( strcmp(tmpFixq, "NARROW_INT") == 0 ) { tmpPosq[0] = '4'; }
+  if ( strcmp(tmpFixq, "NARROW_FLOAT") == 0 ) { tmpPosq[0] = '5'; }
+
+  strcat( fakeKSXT, "$KXST,"); //1
+  strcat( fakeKSXT, tmpSeconds); //2
+  strcat( fakeKSXT, ",");
+  strcat( fakeKSXT, tmpLon);//3
+  strcat( fakeKSXT, ",");
+  strcat( fakeKSXT, tmpLat);//4
+  strcat( fakeKSXT, ",");
+  strcat( fakeKSXT, tmpAlt);//5
+  strcat( fakeKSXT, ",");
+  strcat( fakeKSXT, tmpYaw);//6
+  strcat( fakeKSXT, ",");
+  strcat( fakeKSXT, tmpRoll);//7
+  strcat( fakeKSXT, ",000.00,");//8
+  strcat( fakeKSXT, tmpSpeed);//9
+  strcat( fakeKSXT, ",000.00,");//10
+  strcat( fakeKSXT, tmpPosq);//11
+  strcat( fakeKSXT, ",0,0,");//12,13
+  strcat( fakeKSXT, numSats);//14
+  strcat( fakeKSXT, ",000.000,000.000,000.000,000.000,000.000,000.000,0,0*");//15,16,17,18,19,20,21,22
+  //Serial.println(fakeKSXT);
+  Serial.println(withChecksum(fakeKSXT, false));
 
 
+
+}
+
+String withChecksum(String sentence, bool printLogs) {
+  // http://www.hhhh.org/wiml/proj/nmeaxor.html
+  bool started = false;
+  char checksum = 0;
+  for (unsigned int index = 0; index < sentence.length(); index++) {
+    if (index > 0 && sentence[index - 1] == '$') {
+      if (printLogs) Serial.println("Found first checksum char:");
+      if (printLogs) Serial.println(sentence[index]);
+      if (printLogs) Serial.println(sentence[index], HEX);
+      if (printLogs) Serial.println("Set as initial 'last step result'.");
+      if (printLogs) Serial.println();
+      checksum = sentence[index];
+      started = true;
+      continue; // Skip the rest of this loop iteration.
+    }
+    
+    if (sentence[index] == '*') {
+      if (printLogs) Serial.println("Reached the end of checksum chars.");
+      if (printLogs) Serial.println("Final checksum:");
+      if (printLogs) Serial.println(checksum, HEX);
+      if (printLogs) Serial.println();
+      break; // Exit the loop.
+    }
+    
+    // Ignore everything preceeding '$'.
+    if (!started) {
+      continue; // Skip the rest of this loop iteration.
+    }
+    
+    if (printLogs) Serial.println("Xoring last step result and current char.");
+    if (printLogs) Serial.println(checksum, HEX);
+    if (printLogs) Serial.println(sentence[index]);
+    if (printLogs) Serial.println(sentence[index], HEX);
+    
+    checksum = checksum xor sentence[index];
+    if (printLogs) Serial.println("Got new last step result:");
+    if (printLogs) Serial.println(checksum, HEX);
+    if (printLogs) Serial.println();
+  }
+  
+  String sentenceWithChecksum = sentence + (checksum < 10 ? "0" : "") + String(checksum, HEX);
+  if (printLogs) Serial.println("Sentence with checksum:");
+  if (printLogs) Serial.println(sentenceWithChecksum);
+  return sentenceWithChecksum;
 }
 
 void imuHandler()

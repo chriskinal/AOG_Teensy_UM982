@@ -182,9 +182,9 @@ bool Ethernet_running = false; //Auto set on in ethernet setup
 bool GGA_Available = false;    //Do we have GGA on correct port?
 uint32_t PortSwapTime = 0;
 
-float roll = 0;
-float pitch = 0;
-float yaw = 0;
+double roll = 0;
+double pitch = 0;
+double yaw = 0;
 
 //Fusing BNO with Dual
 double rollDelta;
@@ -298,6 +298,9 @@ void loop()
     bnoTimer = bnoTimer - report_interval;
     digitalWrite(EventOUT, HIGH); // Send begining of pulse to UM982. Triggers on rising edge.
     digitalWrite(EventOUT, LOW); //End of UM982 event pulse.
+    roll = rvcData.roll;
+    pitch = rvcData.pitch;
+    yaw = rvcData.yaw;
     if (blink)
     {
         digitalWrite(GGAReceivedLED, HIGH);
