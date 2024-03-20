@@ -212,7 +212,9 @@ void EVT_Handler()
   char tmpSpeed[10];
   char tmpYaw[7];
   char tmpRoll[7];
+  char tmpPitch[7];
   String ksxtCRC = "";
+  String message = "";
 
   UMparser.getArg(14, tmpSeconds);
   UMparser.getArg(20, tmpFixq);
@@ -226,36 +228,55 @@ void EVT_Handler()
 
   tmpVel = sqrt( tmpNvel*tmpNvel + tmpEvel*tmpEvel );
   dtostrf( tmpVel, 3, 2, tmpSpeed);
+  yaw += headingcorr;
   dtostrf( yaw, 3, 2, tmpYaw);
-  dtostrf( roll, 3, 2, tmpRoll);
+  if ( swap_roll_pitch )
+  {
+    dtostrf( pitch, 3, 2, tmpRoll);
+  }
+  else
+  {
+    dtostrf( roll, 3, 2, tmpRoll);
+  }
 
   memset(tmpPosq, 0, 2);
+  if ( strcmp(tmpFixq, "NONE") == 0 ) { tmpPosq[0] = '0'; }
   if ( strcmp(tmpFixq, "SINGLE") == 0 ) { tmpPosq[0] = '1'; }
   if ( strcmp(tmpFixq, "L1_INT") == 0 ) { tmpPosq[0] = '2'; }
-  if ( strcmp(tmpFixq, "NARROW_INT") == 0 ) { tmpPosq[0] = '4'; }
-  if ( strcmp(tmpFixq, "NARROW_FLOAT") == 0 ) { tmpPosq[0] = '5'; }
+  if ( strcmp(tmpFixq, "NARROW_FLOAT") == 0 ) { tmpPosq[0] = '2'; }
+  if ( strcmp(tmpFixq, "NARROW_INT") == 0 ) { tmpPosq[0] = '3'; }
 
-  strcat( fakeKSXT, "$KXST,"); //1
-  strcat( fakeKSXT, tmpSeconds); //2
+  strcat( fakeKSXT, "$KSXT,"); //0
+  strcat( fakeKSXT, tmpSeconds); //1
   strcat( fakeKSXT, ",");
-  strcat( fakeKSXT, tmpLon);//3
+  strcat( fakeKSXT, tmpLon);//2
   strcat( fakeKSXT, ",");
-  strcat( fakeKSXT, tmpLat);//4
+  strcat( fakeKSXT, tmpLat);//3
   strcat( fakeKSXT, ",");
-  strcat( fakeKSXT, tmpAlt);//5
+  strcat( fakeKSXT, tmpAlt);//4
   strcat( fakeKSXT, ",");
-  strcat( fakeKSXT, tmpYaw);//6
+  strcat( fakeKSXT, tmpYaw);//5
   strcat( fakeKSXT, ",");
-  strcat( fakeKSXT, tmpRoll);//7
-  strcat( fakeKSXT, ",000.00,");//8
-  strcat( fakeKSXT, tmpSpeed);//9
-  strcat( fakeKSXT, ",000.00,");//10
-  strcat( fakeKSXT, tmpPosq);//11
-  strcat( fakeKSXT, ",0,0,");//12,13
-  strcat( fakeKSXT, numSats);//14
-  strcat( fakeKSXT, ",000.000,000.000,000.000,000.000,000.000,000.000,0,0*");//15,16,17,18,19,20,21,22
+  strcat( fakeKSXT, tmpRoll);//6
+  strcat( fakeKSXT, ",000.00,");//7
+  strcat( fakeKSXT, tmpSpeed);//8
+  strcat( fakeKSXT, ",0,");//9
+  strcat( fakeKSXT, tmpPosq);//10
+  strcat( fakeKSXT, ",3,0,");//11,12
+  strcat( fakeKSXT, numSats);//13
+  strcat( fakeKSXT, ",0,0,0,0,0,0,,*");//14,15,16,17,18,19,20,21
   //Serial.println(fakeKSXT);
-  Serial.println(withChecksum(fakeKSXT, false));
+  //Serial.println(withChecksum(fakeKSXT, false));
+  message = withChecksum(fakeKSXT, false);
+  memset(fakeKSXT, 0, 254);
+  message.toCharArray(fakeKSXT, 254);
+  //Serial.print(fakeKSXT);
+  if (sendUSB) { SerialAOG.write(fakeKSXT); } // Send USB GPS data if enabled in user settings
+  if (Ethernet_running){
+      Eth_udpPAOGI.beginPacket(Eth_ipDestination, portDestination);
+      Eth_udpPAOGI.write(fakeKSXT, strlen(fakeKSXT));
+      Eth_udpPAOGI.endPacket();
+  }
 
 
 
@@ -301,7 +322,7 @@ String withChecksum(String sentence, bool printLogs) {
     if (printLogs) Serial.println();
   }
   
-  String sentenceWithChecksum = sentence + (checksum < 10 ? "0" : "") + String(checksum, HEX);
+  String sentenceWithChecksum = sentence + (checksum < 10 ? "0" : "") + String(checksum, HEX) + "\r\n";
   if (printLogs) Serial.println("Sentence with checksum:");
   if (printLogs) Serial.println(sentenceWithChecksum);
   return sentenceWithChecksum;

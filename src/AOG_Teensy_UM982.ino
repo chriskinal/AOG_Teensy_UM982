@@ -21,10 +21,11 @@ bool baseLineCheck = false;   //Set to true to use IMU fusion with UM982
 const bool invertRoll= true;  //Used for IMU with dual antenna
 #define baseLineLimit 5       //Max CM differance in baseline
 byte report_interval = 100; // Currently AOG supports up to 10Hz. Anything below 100ms may produce unpredictable results in AOG.
+bool swap_roll_pitch = false; //When using an IMU this is used depending on how it is mounted.
 
 // Heading correction can be enetered into the UM982 config or AOG GUI so this can be 0. If not in UM982 config or AOG GUI, set here.
 // Negative number = west, positive number = east.
-double headingcorr = 0;
+double headingcorr = -270;
 // double headingcorr = 900;  //90deg heading correction (90deg*10)
 // Roll correction can be entered in the AOG GUI. If not enter roll correction here.
 // Roll correction. Negative number = left; positive number = right.
@@ -59,7 +60,7 @@ int rvcStartbyte = 0;
 int rvcDataread = 0;
 
 // Send data to AgIO via usb
-bool sendUSB = false;
+bool sendUSB = true;
 
 struct ConfigIP {
     uint8_t ipOne = 192;
@@ -294,7 +295,7 @@ void loop()
 {
   if ( rvc.read(&rvcData) && (bnoTimer >= report_interval) )
   {
-    Serial.println( millis() );
+    //Serial.println( millis() );
     bnoTimer = bnoTimer - report_interval;
     digitalWrite(EventOUT, HIGH); // Send begining of pulse to UM982. Triggers on rising edge.
     digitalWrite(EventOUT, LOW); //End of UM982 event pulse.
