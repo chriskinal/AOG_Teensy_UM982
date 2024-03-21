@@ -100,24 +100,12 @@ void HPR_Handler()
   // HPR Heading
   parser.getArg(1, umHeading);
   heading = atof(umHeading);
-  if ( filterHeading )
-    {
-      float tempHeading;
-      tempHeading = headingFilter.updateEstimate(heading);
-      heading = tempHeading;
-    }
 
   // HPR Substitute pitch for roll
   if ( parser.getArg(2, umRoll) )
   {
     rollDual = atof(umRoll);
     digitalWrite(GPSGREEN_LED, HIGH);   //Turn green GPS LED ON
-    if ( filterRoll )
-      {
-        float tempRoll;
-        tempRoll = rollFilter.updateEstimate(rollDual);
-        rollDual = tempRoll;
-      }
   }
   else
   {
