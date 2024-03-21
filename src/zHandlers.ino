@@ -143,22 +143,7 @@ void readBNO()
 
             //get quaternion
             bno08x.getQuat(dqx, dqy, dqz, dqw, dacr, dac);
-/*            
-            while (bno08x.dataAvailable() == true)
-            {
-                //get quaternion
-                bno08x.getQuat(dqx, dqy, dqz, dqw, dacr, dac);
-                //Serial.println("Whiling");
-                //Serial.print(dqx, 4);
-                //Serial.print(F(","));
-                //Serial.print(dqy, 4);
-                //Serial.print(F(","));
-                //Serial.print(dqz, 4);
-                //Serial.print(F(","));
-                //Serial.println(dqw, 4);
-            }
-            //Serial.println("End of while");
-*/            
+      
             float norm = sqrt(dqw * dqw + dqx * dqx + dqy * dqy + dqz * dqz);
             dqw = dqw / norm;
             dqx = dqx / norm;
@@ -181,12 +166,10 @@ void readBNO()
             float t2 = +2.0 * (dqw * dqy - dqz * dqx);
             t2 = t2 > 1.0 ? 1.0 : t2;
             t2 = t2 < -1.0 ? -1.0 : t2;
-//            pitch = asin(t2) * RAD_TO_DEG_X_10;
 
             // roll (x-axis rotation)
             float t0 = +2.0 * (dqw * dqx + dqy * dqz);
             float t1 = +1.0 - 2.0 * (dqx * dqx + ysqr);
-//            roll = atan2(t0, t1) * RAD_TO_DEG_X_10;
 
             if(steerConfig.IsUseY_Axis)
             {
@@ -286,7 +269,7 @@ void imuHandler()
 
 void imuDualDelta()
 {
-                                       //correctionHeading is IMU heading in radians
+   //correctionHeading is IMU heading in radians
    gpsHeading = heading * DEG_TO_RAD;  //gpsHeading is Dual heading in radians
 
    //Difference between the IMU heading and the GPS heading

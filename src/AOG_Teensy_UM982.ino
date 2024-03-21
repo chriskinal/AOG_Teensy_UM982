@@ -13,15 +13,14 @@
 
 /************************* User Settings *************************/
 bool udpPassthrough = false;  // False = GPS neeeds to send GGA, VTG & HPR messages. True = GPS needs to send KSXT messages only.
-bool makeOGI = false;         //Set to true to make PAOGI messages. Else PNADA message will be made.
-bool baseLineCheck = false;   //Set to true to use IMU fusion with UM982
+bool makeOGI = false;         //Set to true to make PAOGI messages. Else PANDA message will be made.
 const bool invertRoll= true;  //Used for IMU with dual antenna
-#define baseLineLimit 5       //Max CM differance in baseline
+bool baseLineCheck = false;   //Set to true to use IMU fusion with UM982
+#define baseLineLimit 5       //Max CM differance in baseline for fusion
 
 // Heading correction can be enetered into the UM982 config or AOG GUI so this can be 0. If not in UM982 config or AOG GUI, set here.
 // Negative number = west, positive number = east.
 double headingcorr = 0;
-// double headingcorr = 900;  //90deg heading correction (90deg*10)
 // Roll correction can be entered in the AOG GUI. If not enter roll correction here.
 // Roll correction. Negative number = left; positive number = right.
 //double rollcorr = 50;
@@ -40,7 +39,7 @@ bool sendUSB = true;
 struct ConfigIP {
     uint8_t ipOne = 192;
     uint8_t ipTwo = 168;
-    uint8_t ipThree = 137;
+    uint8_t ipThree = 5;
 }; 
 /************************* End User Settings *********************/
 
@@ -74,7 +73,6 @@ void autosteerSetup();
 void EthernetStart();
 void udpNtrip();
 void BuildNmea();
-void relPosDecode();
 void readBNO();
 void autosteerLoop();
 void ReceiveUdp();
@@ -124,7 +122,6 @@ BNO080 bno08x;
 double baseline = 0;
 double rollDual = 0;
 double pitchDual = 0;
-double relPosD = 0;
 double heading = 0;
 
 byte ackPacket[72] = {0xB5, 0x62, 0x01, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -187,9 +184,6 @@ struct ubxPacket
 void setup()
 {
   delay(500);                         //Small delay so serial can monitor start up
-    //set_arm_clock(150000000);           //Set CPU speed to 150mhz
-    //Serial.print("CPU speed set to: ");
-    //Serial.println(F_CPU_ACTUAL);
 
   pinMode(GGAReceivedLED, OUTPUT);
   pinMode(Power_on_LED, OUTPUT);
