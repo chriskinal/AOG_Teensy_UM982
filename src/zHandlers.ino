@@ -115,7 +115,7 @@ void HPR_Handler()
   // Solution quality factor
   parser.getArg(4, solQuality);
 
-  if (solQuality >= 4)
+  if (solQuality = 4)
     {
        if (useBNO08x)
        {
