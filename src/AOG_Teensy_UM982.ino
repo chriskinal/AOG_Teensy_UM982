@@ -102,7 +102,7 @@ int msgBufLen = 0;
 uint32_t gpsReadyTime = 0;        //Used for GGA timeout
 
 //Event output to UM982
-#define EventOUT 23 //Trigger UM982 event
+#define EventOUT 33 //Trigger UM982 event
 
 void errorHandler();
 void GGA_Handler();
