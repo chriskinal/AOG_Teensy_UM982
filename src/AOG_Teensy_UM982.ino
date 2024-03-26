@@ -215,7 +215,7 @@ void setup()
     // Increase the size of the serial buffer to hold longer UM982 config messages
     SerialGPS->addMemoryForRead(tmpGPSrxbuffer, tmp_serial_buffer_size);
     SerialGPS->addMemoryForWrite(tmpGPStxbuffer, tmp_serial_buffer_size);
-    delay(100);
+    delay(500);
     SerialGPS->write("VERSION\r\n");
     delay(100);
     while (SerialGPS->available())
