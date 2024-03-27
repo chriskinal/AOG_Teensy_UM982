@@ -1,10 +1,13 @@
 // UM982 Connection plan:
 // Teensy Serial 7 RX (28) to F9P Position receiver TX1 (Position data)
 // Teensy Serial 7 TX (29) to F9P Position receiver RX1 (RTCM data for RTK)
-//
+// Keya bits from https://github.com/lansalot/AgOpenGPS_Boards/tree/KeyaV2/TeensyModules/V4.1/Firmware/Autosteer_gps_teensy_v4_1
+
+
 #include "zNMEAParser.h"
 #include <Wire.h>
 #include "BNO08x_AOG.h"
+#include <FlexCAN_T4.h>
 // Ethernet Options (Teensy 4.1 Only)
 #ifdef ARDUINO_TEENSY41
 #include <NativeEthernet.h>
@@ -52,6 +55,14 @@ int msgBufLen = 0;
 
 #define ImuWire Wire // SCL=19:A5 SDA=18:A4
 #define RAD_TO_DEG_X_10 572.95779513082320876798154814105
+
+// Keya Support
+// CRX1/CTX1 on Teensy are CAN1 on Tony's board
+// CRX2/CTX2 on Teensy are CAN2 on AIO board, CAN2 on Tony's board
+// CRX3/CTX3 on Teensy are CAN1 on AIO board, CAN3 on Tony's board
+FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_256> Keya_Bus;
+int8_t KeyaCurrentSensorReading = 0;
+bool keyaDetected = false;
 
 #define REPORT_INTERVAL 20  // BNO report time, we want to keep reading it quick & offen. Its not timmed to anything just give constant data.
 uint32_t READ_BNO_TIME = 0; // Used stop BNO data pile up (This version is without resetting BNO everytime)
@@ -431,11 +442,17 @@ void setup()
   Serial.print("useBNO08x = ");
   Serial.println(useBNO08x);
 
+  // Keya support
+  CAN_Setup();
+
   Serial.println("\r\nEnd setup, waiting for GPS...\r\n");
 }
 
 void loop()
 {
+  // Keya support
+  KeyaBus_Receive();
+
   // Read incoming nmea from GPS
   if (SerialGPS->available())
   {

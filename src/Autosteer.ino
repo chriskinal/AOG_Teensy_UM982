@@ -119,6 +119,7 @@ float steerAngleError = 0;    // setpoint - actual
 
 // pwm variables
 int16_t pwmDrive = 0, pwmDisplay = 0;
+float pwmDriveF = 0;
 float pValue = 0;
 float errorAbs = 0;
 float highLowPerDeg = 0;
@@ -284,15 +285,31 @@ void autosteerLoop()
     encEnable = true;
 
     // If connection lost to AgOpenGPS, the watchdog will count up and turn off steering
-    if (watchdogTimer++ > 250)
+    if (watchdogTimer++ > 250) {
       watchdogTimer = WATCHDOG_FORCE_VALUE;
+      			Serial.println("Lost connection to AOG - disabling Keya commands");
+			keyaDetected = false;
+		}
 
     // read all the switches
     workSwitch = digitalRead(WORKSW_PIN); // read work switch
 
     if (steerConfig.SteerSwitch == 1) // steer switch on - off
     {
-      steerSwitch = digitalRead(STEERSW_PIN); // read auto steer enable switch open = 0n closed = Off
+      //steerSwitch = digitalRead(STEERSW_PIN); // read auto steer enable switch open = 0n closed = Off
+
+			// new code for steer "Switch" mode that keeps AutoSteer OFF after current/pressure kickout until switch is cycled
+			reading = digitalRead(STEERSW_PIN);
+			if (reading == HIGH)  // switching "OFF"
+			{
+				steerSwitch = reading;
+			}
+			else if (reading == LOW && previous == HIGH)
+			{
+				steerSwitch = reading;
+			}
+			previous = reading;
+			// end new code
     }
     else if (steerConfig.SteerButton == 1) // steer Button momentary
     {
@@ -355,16 +372,29 @@ void autosteerLoop()
     // Current sensor?
     if (steerConfig.CurrentSensor)
     {
-      sensorSample = (float)analogRead(CURRENT_SENSOR_PIN);
-      sensorSample = (abs(775 - sensorSample)) * 0.5;
-      sensorReading = sensorReading * 0.7 + sensorSample * 0.3;
-      sensorReading = min(sensorReading, 255);
+      			if (keyaDetected) {
+				// Matt did it this way
+				// sensorReading = sensorReading * 0.7 + KeyaCurrentSensorReading * 0.3; // then use keya current data
+				sensorReading = KeyaCurrentSensorReading;
+				if (abs(KeyaCurrentSensorReading) >= steerConfig.PulseCountMax) {
+					steerSwitch = 1; // reset values like it turned off
+					currentState = 1;
+					previous = 0;
+				}
+			}
+			else { // otherwise continue using analog input on PCB
+          sensorSample = (float)analogRead(CURRENT_SENSOR_PIN);
+          sensorSample = (abs(775 - sensorSample)) * 0.5;
+          sensorReading = sensorReading * 0.7 + sensorSample * 0.3;
+          sensorReading = min(sensorReading, 255);
 
-      if (sensorReading >= steerConfig.PulseCountMax)
-      {
-        steerSwitch = 1; // reset values like it turned off
-        currentState = 1;
-        previous = 0;
+          if (sensorReading >= steerConfig.PulseCountMax)
+          {
+            steerSwitch = 1; // reset values like it turned off
+            currentState = 1;
+            previous = 0;
+          }
+
       }
     }
 
@@ -439,6 +469,7 @@ void autosteerLoop()
         digitalWrite(DIR1_RL_ENABLE, 1);
 
       steerAngleError = steerAngleActual - steerAngleSetPoint; // calculate the steering error
+      Serial.println("angle: " + String(steerAngleError));
       // if (abs(steerAngleError)< steerSettings.lowPWM) steerAngleError = 0;
 
       calcSteeringPID(); // do the pid
@@ -452,6 +483,7 @@ void autosteerLoop()
     {
       // we've lost the comm to AgOpenGPS, or just stop request
       // Disable H Bridge for IBT2, hyd aux, etc for cytron
+      // Don't care about this for Keya
       if (steerConfig.CytronDriver)
       {
         if (steerConfig.IsRelayActiveHigh)
@@ -512,8 +544,7 @@ void autosteerLoop()
     if (thisEnc != lastEnc)
     {
       lastEnc = thisEnc;
-      if (lastEnc)
-        EncoderFunc();
+      if (lastEnc) EncoderFunc();
     }
   }
 
@@ -678,38 +709,14 @@ void ReceiveUdp()
       {
         uint8_t sett = autoSteerUdpData[5]; // setting0
 
-        if (bitRead(sett, 0))
-          steerConfig.InvertWAS = 1;
-        else
-          steerConfig.InvertWAS = 0;
-        if (bitRead(sett, 1))
-          steerConfig.IsRelayActiveHigh = 1;
-        else
-          steerConfig.IsRelayActiveHigh = 0;
-        if (bitRead(sett, 2))
-          steerConfig.MotorDriveDirection = 1;
-        else
-          steerConfig.MotorDriveDirection = 0;
-        if (bitRead(sett, 3))
-          steerConfig.SingleInputWAS = 1;
-        else
-          steerConfig.SingleInputWAS = 0;
-        if (bitRead(sett, 4))
-          steerConfig.CytronDriver = 1;
-        else
-          steerConfig.CytronDriver = 0;
-        if (bitRead(sett, 5))
-          steerConfig.SteerSwitch = 1;
-        else
-          steerConfig.SteerSwitch = 0;
-        if (bitRead(sett, 6))
-          steerConfig.SteerButton = 1;
-        else
-          steerConfig.SteerButton = 0;
-        if (bitRead(sett, 7))
-          steerConfig.ShaftEncoder = 1;
-        else
-          steerConfig.ShaftEncoder = 0;
+        if (bitRead(sett, 0)) steerConfig.InvertWAS = 1; else steerConfig.InvertWAS = 0;
+        if (bitRead(sett, 1)) steerConfig.IsRelayActiveHigh = 1; else steerConfig.IsRelayActiveHigh = 0;
+        if (bitRead(sett, 2)) steerConfig.MotorDriveDirection = 1; else steerConfig.MotorDriveDirection = 0;
+        if (bitRead(sett, 3)) steerConfig.SingleInputWAS = 1; else steerConfig.SingleInputWAS = 0;
+        if (bitRead(sett, 4)) steerConfig.CytronDriver = 1; else steerConfig.CytronDriver = 0;
+        if (bitRead(sett, 5)) steerConfig.SteerSwitch = 1; else steerConfig.SteerSwitch = 0;
+        if (bitRead(sett, 6)) steerConfig.SteerButton = 1; else steerConfig.SteerButton = 0;
+        if (bitRead(sett, 7)) steerConfig.ShaftEncoder = 1; else steerConfig.ShaftEncoder = 0;
 
         steerConfig.PulseCountMax = autoSteerUdpData[6];
 

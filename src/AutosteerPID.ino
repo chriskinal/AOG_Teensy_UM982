@@ -3,6 +3,7 @@ void calcSteeringPID(void)
   // Proportional only
   pValue = steerSettings.Kp * steerAngleError;
   pwmDrive = (int16_t)pValue;
+  pwmDriveF = (float)pValue;
 
   errorAbs = abs(steerAngleError);
   int16_t newMax = 0;
@@ -62,7 +63,22 @@ void motorDrive(void)
   // Used with Cytron MD30C Driver
   // Steering Motor
   // Dir + PWM Signal
-  if (steerConfig.CytronDriver)
+	if (keyaDetected) {
+		if (pwmDrive == 0) {
+			// send disable
+			disableKeyaSteer();
+		}
+		else {
+			SteerKeya(pwmDrive, pwmDriveF);
+		}
+		if (pwmDrive < 0) {
+			pwmDisplay = 256 - pwmDrive;
+		}
+		else {
+			pwmDisplay = pwmDrive;
+		}
+	}  
+  else if (steerConfig.CytronDriver)
   {
     // Cytron MD30C Driver Dir + PWM Signal
     if (pwmDrive >= 0)
