@@ -1,4 +1,5 @@
 Fork of the AgOpenGPS firmware specifically for the UM982.
+Forked from https://github.com/AgHardware/Boards/blob/main/TeensyModules/AIO%20Standard%20v4/Firmware/Autosteer_gps_teensy_v4/Autosteer_gps_teensy_v4.ino
 
 Copywrite 2024 chriskinal
 
