@@ -1,3 +1,11 @@
+/*
+   UDP Autosteer code for Teensy 4.1
+   For AgOpenGPS
+   01 Feb 2022
+   Like all Arduino code - copied from somewhere else :)
+   So don't claim it as your own
+*/
+
 void EthernetStart()
 {
 #ifdef ARDUINO_TEENSY41
