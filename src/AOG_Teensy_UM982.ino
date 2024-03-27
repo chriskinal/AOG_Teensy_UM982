@@ -1,3 +1,11 @@
+/* Copywrite 2024 chriskinal
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied 
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
 // UM982 Connection plan:
 // Teensy Serial 7 RX (28) to F9P Position receiver TX1 (Position data)
 // Teensy Serial 7 TX (29) to F9P Position receiver RX1 (RTCM data for RTK)
