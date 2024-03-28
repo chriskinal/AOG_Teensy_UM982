@@ -63,21 +63,26 @@ void motorDrive(void)
   // Used with Cytron MD30C Driver
   // Steering Motor
   // Dir + PWM Signal
-	if (keyaDetected) {
-		if (pwmDrive == 0) {
-			// send disable
-			disableKeyaSteer();
-		}
-		else {
-			SteerKeya(pwmDrive, pwmDriveF);
-		}
-		if (pwmDrive < 0) {
-			pwmDisplay = 256 - pwmDrive;
-		}
-		else {
-			pwmDisplay = pwmDrive;
-		}
-	}  
+  if (keyaDetected)
+  {
+    if (pwmDrive == 0)
+    {
+      // send disable
+      disableKeyaSteer();
+    }
+    else
+    {
+      SteerKeya(pwmDrive, pwmDriveF);
+    }
+    if (pwmDrive < 0)
+    {
+      pwmDisplay = 256 - pwmDrive;
+    }
+    else
+    {
+      pwmDisplay = pwmDrive;
+    }
+  }
   else if (steerConfig.CytronDriver)
   {
     // Cytron MD30C Driver Dir + PWM Signal
