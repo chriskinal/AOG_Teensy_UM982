@@ -134,16 +134,14 @@ uint8_t GPS2rxbuffer[serial_buffer_size]; // Extra serial rx buffer
 uint8_t GPS2txbuffer[serial_buffer_size]; // Extra serial tx buffer
 uint8_t RTKrxbuffer[serial_buffer_size];  // Extra serial rx buffer
 const int tmp_serial_buffer_size = 2048;
-uint8_t tmpGPSrxbuffer[tmp_serial_buffer_size];    //Temp serial rx buffer for detecting / configuring the UM982
-uint8_t tmpGPStxbuffer[tmp_serial_buffer_size];    //Temp serial tx buffer for detecting / configuring the UM982
+uint8_t tmpGPSrxbuffer[tmp_serial_buffer_size]; // Temp serial rx buffer for detecting / configuring the UM982
+uint8_t tmpGPStxbuffer[tmp_serial_buffer_size]; // Temp serial tx buffer for detecting / configuring the UM982
 
 // Baudrates for detecting UM982 receiver
-uint32_t baudrates[]
-{
-  460800,
-  115200
-};
-const uint32_t nrBaudrates = sizeof(baudrates)/sizeof(baudrates[0]);
+uint32_t baudrates[]{
+    460800,
+    115200};
+const uint32_t nrBaudrates = sizeof(baudrates) / sizeof(baudrates[0]);
 
 // Bools for detecting / configuring the UM982
 bool gotUM982 = false;
@@ -200,17 +198,17 @@ struct ubxPacket
 void setup()
 {
   delay(500); // Small delay so serial can monitor start up
-  
+
   Serial.println("Start setup");
   Serial.println();
 
-  //Check for UM982
+  // Check for UM982
   uint32_t baudrate = 0;
   for (uint32_t i = 0; i < nrBaudrates; i++)
   {
     baudrate = baudrates[i];
     Serial.print(F("Checking for UM982 at baudrate: "));
-		Serial.println(baudrate);
+    Serial.println(baudrate);
     SerialGPS->begin(baudrate);
     // Increase the size of the serial buffer to hold longer UM982 config messages
     SerialGPS->addMemoryForRead(tmpGPSrxbuffer, tmp_serial_buffer_size);
@@ -222,45 +220,51 @@ void setup()
     {
       char incoming[100];
       SerialGPS->readBytesUntil('\n', incoming, 100);
-      //Serial.println(incoming);
-      if ( strstr(incoming, "UM982") != NULL)
+      // Serial.println(incoming);
+      if (strstr(incoming, "UM982") != NULL)
       {
         if (baudrate != 460800)
-          {
-            Serial.println("UM982 baudrate wrong for AOG. Setting to 460800 bps for AOG");
-            SerialGPS->write("CONFIG COM1 460800\r\n");
-            delay(100);
-            SerialGPS->begin(baudGPS);
-          }
+        {
+          Serial.println("UM982 baudrate wrong for AOG. Setting to 460800 bps for AOG");
+          SerialGPS->write("CONFIG COM1 460800\r\n");
+          delay(100);
+          SerialGPS->begin(baudGPS);
+        }
         gotUM982 = true;
         break;
       }
-      if ( gotUM982 ) {break;}
+      if (gotUM982)
+      {
+        break;
+      }
     }
-    if ( gotUM982 ) {break;}
+    if (gotUM982)
+    {
+      break;
+    }
   }
 
   // Configure UM982
-  if ( gotUM982 )
+  if (gotUM982)
   {
     SerialGPS->write("CONFIG\r\n"); // Request the UM982 Configuration
     delay(200);
 
-    while ( SerialGPS->available() && !setUM982 )
+    while (SerialGPS->available() && !setUM982)
     {
       char incoming[100];
       SerialGPS->readBytesUntil('\n', incoming, 100);
-      //Serial.println(incoming);
+      // Serial.println(incoming);
 
-      //Check the "UM982 configured" flag.
-      if ( strstr(incoming, "CONFIG ANTENNADELTAHEN") != NULL)
+      // Check the "UM982 configured" flag.
+      if (strstr(incoming, "CONFIG ANTENNADELTAHEN") != NULL)
       {
         Serial.println("Got the config line");
-        if ( strstr(incoming, "ANTENNADELTAHEN 0.0099 0.0099 0.0099") != NULL)
+        if (strstr(incoming, "ANTENNADELTAHEN 0.0099 0.0099 0.0099") != NULL)
         {
           Serial.println("And it is already configured");
           Serial.println();
-          
+
           // Reset serial buffer size
           SerialGPS->addMemoryForRead(GPSrxbuffer, serial_buffer_size);
           SerialGPS->addMemoryForWrite(GPStxbuffer, serial_buffer_size);
@@ -270,9 +274,9 @@ void setup()
         {
           Serial.println("And it is not already configured");
 
-          //Clear out the serial channel
+          // Clear out the serial channel
           SerialGPS->write("UNLOGALL\r\n");
-          while ( ( SerialGPS->available()))
+          while ((SerialGPS->available()))
           {
             SerialGPS->read();
           }
@@ -335,11 +339,9 @@ void setup()
           // Reset the serial buffer size
           SerialGPS->addMemoryForRead(GPSrxbuffer, serial_buffer_size);
           SerialGPS->addMemoryForWrite(GPStxbuffer, serial_buffer_size);
-
         }
       }
     }
-
   }
 
   pinMode(GGAReceivedLED, OUTPUT);
