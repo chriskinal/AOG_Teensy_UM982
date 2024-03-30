@@ -197,14 +197,25 @@ void KeyaBus_Receive()
 			// if (KeyaCurrentSensorReading > 255) KeyaCurrentSensorReading -= 255;
 			// KeyaCurrentSensorReading = abs(KeyaBusReceiveData.buf[4]) * 20;
 
-			if (KeyaBusReceiveData.buf[4] == 0xFF)
-			{
-				KeyaCurrentSensorReading = (256 - KeyaBusReceiveData.buf[5]) * 40;
+			// Iansalot version
+			// if (KeyaBusReceiveData.buf[4] == 0xFF)
+			// {
+			// 	KeyaCurrentSensorReading = (256 - KeyaBusReceiveData.buf[5]) * 40;
+			// }
+			// else
+			// {
+			// 	KeyaCurrentSensorReading = KeyaBusReceiveData.buf[5] * 40;
+			// }
+
+			// Gunics version
+
+			if (KeyaBusReceiveData.buf[4] == 0xFF) {
+				KeyaCurrentSensorReading = (0.8 * KeyaCurrentSensorReading  ) + ( 0.2 *  (256 - KeyaBusReceiveData.buf[5]) * 20);
 			}
-			else
-			{
-				KeyaCurrentSensorReading = KeyaBusReceiveData.buf[5] * 40;
+			else {
+				KeyaCurrentSensorReading = (0.8 * KeyaCurrentSensorReading  ) + ( 0.2 * KeyaBusReceiveData.buf[5] * 20);
 			}
+
 			// if (debugKeya) Serial.println("Heartbeat current is " + String(KeyaCurrentSensorReading));
 
 			if (KeyaBusReceiveData.buf[7] != 0)
