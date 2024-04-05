@@ -242,9 +242,13 @@ void EVT_Handler()
   memset(tmpPosq, 0, 2);
   if ( strcmp(tmpFixq, "NONE") == 0 ) { tmpPosq[0] = '0'; }
   if ( strcmp(tmpFixq, "SINGLE") == 0 ) { tmpPosq[0] = '1'; }
-  if ( strcmp(tmpFixq, "L1_INT") == 0 ) { tmpPosq[0] = '2'; }
+  if ( strcmp(tmpFixq, "L1_INT") == 0 ) { tmpPosq[0] = '1'; }
+  if ( strcmp(tmpFixq, "PSRDIFF") == 0 ) { tmpPosq[0] = '1'; }
+  if ( strcmp(tmpFixq, "L1_FLOAT") == 0 ) { tmpPosq[0] = '1'; }
   if ( strcmp(tmpFixq, "NARROW_FLOAT") == 0 ) { tmpPosq[0] = '2'; }
   if ( strcmp(tmpFixq, "NARROW_INT") == 0 ) { tmpPosq[0] = '3'; }
+  Serial.println(tmpFixq);
+  Serial.println(tmpPosq);
 
   strcat( fakeKSXT, "$KSXT,"); //0
   strcat( fakeKSXT, tmpSeconds); //1
