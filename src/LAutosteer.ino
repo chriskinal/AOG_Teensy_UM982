@@ -65,6 +65,7 @@ ADS1115_lite adc(ADS1115_DEFAULT_ADDRESS);     // Use this for the 16-bit versio
 uint8_t autoSteerUdpData[UDP_TX_PACKET_MAX_SIZE];  // Buffer For Receiving UDP Data
 #endif
 
+bool isKeya = true;
 //loop time variables in microseconds
 const uint16_t LOOP_TIME = 25;  //40Hz
 uint32_t autsteerLastTime = LOOP_TIME;
@@ -119,7 +120,6 @@ float steerAngleError = 0; //setpoint - actual
 
 //pwm variables
 int16_t pwmDrive = 0, pwmDisplay = 0;
-float pwmDriveF = 0;
 float pValue = 0;
 float errorAbs = 0;
 float highLowPerDeg = 0;
@@ -147,7 +147,7 @@ struct Setup {
 	uint8_t IsRelayActiveHigh = 0;    // if zero, active low (default)
 	uint8_t MotorDriveDirection = 0;
 	uint8_t SingleInputWAS = 1;
-	uint8_t CytronDriver = 1;
+	uint8_t CytronDriver = 1;         // 0 if IBT, but we need to throw Keya into the mix. As we set bits from UDP, best to separate these and override "if keya"
 	uint8_t SteerSwitch = 0;          // 1 if switch selected
 	uint8_t SteerButton = 0;          // 1 if button selected
 	uint8_t ShaftEncoder = 0;
@@ -156,13 +156,16 @@ struct Setup {
 	uint8_t PulseCountMax = 5;
 	uint8_t IsDanfoss = 0;
 	uint8_t IsUseY_Axis = 0;     //Set to 0 to use X Axis, 1 to use Y avis
+
 }; Setup steerConfig;               // 9 bytes (AW: 14, surely?)
 
 void steerConfigInit()
 {
-	if (steerConfig.CytronDriver)
-	{
-		pinMode(PWM2_RPWM, OUTPUT);
+	if (!isKeya) {
+		if (steerConfig.CytronDriver)
+		{
+			pinMode(PWM2_RPWM, OUTPUT);
+		}
 	}
 }
 
@@ -281,31 +284,14 @@ void autosteerLoop()
 		encEnable = true;
 
 		//If connection lost to AgOpenGPS, the watchdog will count up and turn off steering
-		if (watchdogTimer++ > 250) {
-			watchdogTimer = WATCHDOG_FORCE_VALUE;
-			Serial.println("Lost connection to AOG - disabling Keya commands");
-			keyaDetected = false;
-		}
+		if (watchdogTimer++ > 250) watchdogTimer = WATCHDOG_FORCE_VALUE;
 
 		//read all the switches
 		workSwitch = digitalRead(WORKSW_PIN);  // read work switch
 
 		if (steerConfig.SteerSwitch == 1)         //steer switch on - off
 		{
-			//steerSwitch = digitalRead(STEERSW_PIN); //read auto steer enable switch open = 0n closed = Off
-
-			// new code for steer "Switch" mode that keeps AutoSteer OFF after current/pressure kickout until switch is cycled
-			reading = digitalRead(STEERSW_PIN);
-			if (reading == HIGH)  // switching "OFF"
-			{
-				steerSwitch = reading;
-			}
-			else if (reading == LOW && previous == HIGH)
-			{
-				steerSwitch = reading;
-			}
-			previous = reading;
-			// end new code
+			steerSwitch = digitalRead(STEERSW_PIN); //read auto steer enable switch open = 0n closed = Off
 		}
 		else if (steerConfig.SteerButton == 1)    //steer Button momentary
 		{
@@ -368,17 +354,15 @@ void autosteerLoop()
 		// Current sensor?
 		if (steerConfig.CurrentSensor)
 		{
-			if (keyaDetected) {
-				// Matt did it this way
-				// sensorReading = sensorReading * 0.7 + KeyaCurrentSensorReading * 0.3; // then use keya current data
+			if (isKeya) {
 				sensorReading = KeyaCurrentSensorReading;
-				if (abs(KeyaCurrentSensorReading) >= steerConfig.PulseCountMax) {
+				if (KeyaCurrentSensorReading >= steerConfig.PulseCountMax) {
 					steerSwitch = 1; // reset values like it turned off
 					currentState = 1;
 					previous = 0;
 				}
 			}
-			else { // otherwise continue using analog input on PCB
+			else {
 				sensorSample = (float)analogRead(CURRENT_SENSOR_PIN);
 				sensorSample = (abs(775 - sensorSample)) * 0.5;
 				sensorReading = sensorReading * 0.7 + sensorSample * 0.3;
@@ -449,20 +433,21 @@ void autosteerLoop()
 		if (watchdogTimer < WATCHDOG_THRESHOLD)
 		{
 			//Enable H Bridge for IBT2, hyd aux, etc for cytron. Don't care about this for Keya
-			if (steerConfig.CytronDriver)
-			{
-				if (steerConfig.IsRelayActiveHigh)
+			if (!isKeya) {
+				if (steerConfig.CytronDriver)
 				{
-					digitalWrite(PWM2_RPWM, 0);
+					if (steerConfig.IsRelayActiveHigh)
+					{
+						digitalWrite(PWM2_RPWM, 0);
+					}
+					else
+					{
+						digitalWrite(PWM2_RPWM, 1);
+					}
 				}
-				else
-				{
-					digitalWrite(PWM2_RPWM, 1);
-				}
+				else digitalWrite(DIR1_RL_ENABLE, 1);
 			}
-			else digitalWrite(DIR1_RL_ENABLE, 1);
 			steerAngleError = steerAngleActual - steerAngleSetPoint;   //calculate the steering error
-			Serial.println("angle: " + String(steerAngleError));
 			//if (abs(steerAngleError)< steerSettings.lowPWM) steerAngleError = 0;
 
 			calcSteeringPID();  //do the pid
@@ -477,20 +462,23 @@ void autosteerLoop()
 			//we've lost the comm to AgOpenGPS, or just stop request
 			//Disable H Bridge for IBT2, hyd aux, etc for cytron
 			// Don't care about this for Keya
-			if (steerConfig.CytronDriver)
-			{
-				if (steerConfig.IsRelayActiveHigh)
+			if (!isKeya) {
+				if (steerConfig.CytronDriver)
 				{
-					digitalWrite(PWM2_RPWM, 1);
+					if (steerConfig.IsRelayActiveHigh)
+					{
+						digitalWrite(PWM2_RPWM, 1);
+					}
+					else
+					{
+						digitalWrite(PWM2_RPWM, 0);
+					}
 				}
-				else
-				{
-					digitalWrite(PWM2_RPWM, 0);
-				}
+				else digitalWrite(DIR1_RL_ENABLE, 0); //IBT2
 			}
-			else digitalWrite(DIR1_RL_ENABLE, 0); //IBT2
 
 			pwmDrive = 0; //turn off steering motor
+			if (isKeya) disableKeyaSteer(); // If we lost the connection to AOG, definitely disable steering
 			motorDrive(); //out to motors the pwm value
 			pulseCount = 0;
 			// Autosteer Led goes back to RED when autosteering is stopped
@@ -744,7 +732,7 @@ void ReceiveUdp()
 
 					SendUdp(helloFromAutoSteer, sizeof(helloFromAutoSteer), Eth_ipDestination, portDestination);
 				}
-				if (useBNO08x || useCMPS)
+				if (useBNO08x)
 				{
 					SendUdp(helloFromIMU, sizeof(helloFromIMU), Eth_ipDestination, portDestination);
 				}
@@ -805,18 +793,6 @@ void SendUdp(uint8_t* data, uint8_t datalen, IPAddress dip, uint16_t dport)
 	Eth_udpAutoSteer.write(data, datalen);
 	Eth_udpAutoSteer.endPacket();
 }
-
-//void SendUdpFreeForm(char str[], IPAddress dip, uint16_t dport)
-//{
-//	//uint32_t start = millis();
-//	char ForTheWire[strlen(str) + 2];
-//	strcpy(ForTheWire, beaconIdentifier);
-//	strcat(ForTheWire, str);
-//	Eth_udpAutoSteer.beginPacket(dip, dport);
-//	Eth_udpAutoSteer.write(ForTheWire, sizeof(ForTheWire));
-//	Eth_udpAutoSteer.endPacket();
-//	//Serial.println("Send freeform took " + String(millis() - start) + " milliseconds");
-//}
 #endif
 
 //ISR Steering Wheel Encoder
