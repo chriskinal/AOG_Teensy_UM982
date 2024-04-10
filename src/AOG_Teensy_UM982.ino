@@ -36,7 +36,7 @@ const int32_t baudGPS = 460800;       // UM982 connection speed
 const int32_t baudRTK = 9600;         // most are using Xbee radios with default of 115200
 
 // Send data to AgIO via usb
-bool sendUSB = true;
+bool sendUSB = false;
 
 struct ConfigIP
 {
