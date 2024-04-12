@@ -1,4 +1,7 @@
 // KeyaCANBUS
+/*
+"Barrowed" Keya code from Matt Elias @ https://github.com/m-elias/AgOpenGPS_Boards/tree/575R-Keya/TeensyModules/V4.1"
+*/
 
 #define lowByte(w) ((uint8_t)((w) & 0xFF))
 #define highByte(w) ((uint8_t)((w) >> 8))
@@ -286,9 +289,9 @@ void KeyaBus_Receive()
           Serial.println("\r\nMotor stalled");
         }
       }
-      //  keyaCommand(keyaTemperatureQuery);
-      //  keyaCommand(keyaVoltageQuery);
-      //  keyaCommand(keyaFaultQuery);
+      // keyaCommand(keyaTemperatureQuery);
+      // keyaCommand(keyaVoltageQuery);
+      // keyaCommand(keyaFaultQuery);
     }
 
     // parse query/command 00:05:08:00:00:00:00:[ID] responses
