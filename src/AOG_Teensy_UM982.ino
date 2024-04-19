@@ -286,13 +286,13 @@ void setup()
           delay(100);
 
           // Set heading to tractor
-          Serial.println("Setting heading to tractor");
-          SerialGPS->write("CONFIG HEADING TRACTOR\r\n");
+          Serial.println("Setting heading to variablelength");
+          SerialGPS->write("CONFIG HEADING VARIABLELENGTH\r\n");
           delay(100);
 
           // Set heading smoothing
           Serial.println("Setting heading smoothing");
-          SerialGPS->write("CONFIG SMOOTH HEADING 10\r\n");
+          SerialGPS->write("CONFIG SMOOTH HEADING 5\r\n");
           delay(100);
 
           // Set COM1 to 460800
