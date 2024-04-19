@@ -9,29 +9,20 @@ You should have received a copy of the GNU General Public License along with thi
 // Conversion to Hexidecimal
 const char* asciiHex = "0123456789ABCDEF";
 
-// the new PANDA sentence buffer
-char nmea[100];
+// new KSXT buffer
+char ksxt[150];
 
 // GGA
-char fixTime[12];
-char latitude[15];
-char latNS[3];
-char longitude[15];
-char lonEW[3];
-char fixQuality[2];
-char numSats[4];
-char HDOP[5];
-char altitude[12];
-char ageDGPS[10];
-
-// VTG
-char vtgHeading[12] = { };
-char speedKnots[10] = { };
-
-// HPR
-char umHeading[8];
-char umRoll[8];
-int solQuality;
+// char fixTime[12];
+// char latitude[15];
+// char latNS[3];
+// char longitude[15];
+// char lonEW[3];
+// char fixQuality[2];
+// char numSats[4];
+// char HDOP[5];
+// char altitude[12];
+// char ageDGPS[10];
 
 // IMU
 char imuHeading[6];
@@ -39,119 +30,74 @@ char imuRoll[6];
 char imuPitch[6];
 char imuYawRate[6];
 
+//SXT
+char timeFix[18];
+char fixTime[18];
+char longitude[13];
+char latitude[12];
+char height[11];
+char kHeading[7];
+char kPitch[7];
+char track[7];
+char velocity[8];
+char kRoll[7];
+char posQual[2];
+char headQual[2];
+char hSats[3];
+char mSats[3];
+char east[8];
+char north[8];
+char up[8];
+char eastVel[8];
+char northVel[8];
+char upVel[8];
+
 // If odd characters showed up.
 void errorHandler()
 {
   //nothing at the moment
 }
 
-void GGA_Handler() //Rec'd GGA
+void SXT_Handler()
 {
-    // fix time
-    parser.getArg(0, fixTime);
+  parser.getArg(0, timeFix);
+  parser.getArg(1, longitude);
+  parser.getArg(2, latitude);
+  parser.getArg(3, height);
+  parser.getArg(4, kHeading);
+  parser.getArg(5, kPitch);
+  parser.getArg(6, track);
+  parser.getArg(7, velocity);
+  parser.getArg(8, kRoll);
+  parser.getArg(9, posQual);
+  parser.getArg(10, headQual);
+  parser.getArg(11, hSats);
+  parser.getArg(12, mSats);
+  parser.getArg(13, east);
+  parser.getArg(14, north);
+  parser.getArg(15, up);
+  parser.getArg(16, eastVel);
+  parser.getArg(17, northVel);
+  parser.getArg(18, upVel);
 
-    // latitude
-    parser.getArg(1, latitude);
-    parser.getArg(2, latNS);
+  imuHandler();
+  BuildKsxt();
 
-    // longitude
-    parser.getArg(3, longitude);
-    parser.getArg(4, lonEW);
-
-    // fix quality
-    parser.getArg(5, fixQuality);
-
-    // satellite #
-    parser.getArg(6, numSats);
-
-    // HDOP
-    parser.getArg(7, HDOP);
-
-    // altitude
-    parser.getArg(8, altitude);
-
-    // time of last DGPS update
-    parser.getArg(12, ageDGPS);
-
-    if (blink)
-    {
-        digitalWrite(GGAReceivedLED, HIGH);
-    }
-    else
-    {
-        digitalWrite(GGAReceivedLED, LOW);
-    }
-
-    blink = !blink;
-    GGA_Available = true;
-
-    dualReadyGGA = true;
-   
-    gpsReadyTime = systick_millis_count;    //Used for GGA timeout (LED's ETC) 
-}
-
-void VTG_Handler()
-{
-  // vtg heading
-  parser.getArg(0, vtgHeading);
-
-  // vtg Speed knots
-  parser.getArg(4, speedKnots);
-}
-
-//UM982 Support
-void HPR_Handler()
-{ 
-  dualReadyRelPos = true;
-  digitalWrite(GPSRED_LED, LOW);   //Turn red GPS LED OFF (we are now in dual mode so green LED)
-
-  // HPR Heading
-  parser.getArg(1, umHeading);
-  heading = atof(umHeading);
-  if ( filterHeading )
-    {
-      float tempHeading;
-      tempHeading = headingFilter.updateEstimate(heading);
-      heading = tempHeading;
-    }
-
-  // HPR Substitute pitch for roll
-  if ( parser.getArg(2, umRoll) )
+  if (blink)
   {
-    rollDual = atof(umRoll);
-    digitalWrite(GPSGREEN_LED, HIGH);   //Turn green GPS LED ON
-    if ( filterRoll )
-      {
-        float tempRoll;
-        tempRoll = rollFilter.updateEstimate(rollDual);
-        rollDual = tempRoll;
-      }
+      digitalWrite(GGAReceivedLED, HIGH);
   }
   else
   {
-    digitalWrite(GPSGREEN_LED, blink);  //Flash the green GPS LED
+      digitalWrite(GGAReceivedLED, LOW);
   }
 
-  // Solution quality factor
-  parser.getArg(4, solQuality);
+  blink = !blink;
+  // GGA_Available = true;
 
-  if (solQuality >= 4)
-    {
-       if (useBNO08x)
-       {
-           if (baseLineCheck)
-           {
-               imuDualDelta();         //Find the error between latest IMU reading and this dual message
-              dualReadyRelPos = false;  //RelPos ready is false because we just saved the error for running from the IMU
-           }
-
-       }
-       else
-       {
-           imuHandler();             //No IMU so use dual data direct
-           dualReadyRelPos = true;   //RelPos ready is true so PAOGI will send when the GGA is also ready
-       }
-    }
+  // dualReadyGGA = true;
+  
+  gpsReadyTime = systick_millis_count;    //Used for GGA timeout (LED's ETC) 
 }
 
 void readBNO()
@@ -359,77 +305,82 @@ void fuseIMU()
    imuCorrected = imuCorrected * RAD_TO_DEG; 
 }
 
-void BuildNmea(void)
-{
-    strcpy(nmea, "");
+void BuildKsxt(void) {
 
-    if (makeOGI) strcat(nmea, "$PAOGI,");
-    else strcat(nmea, "$PANDA,");
+  strcpy(ksxt, "");
 
-    strcat(nmea, fixTime);
-    strcat(nmea, ",");
+  strcat(ksxt, "$KSXT,");
 
-    strcat(nmea, latitude);
-    strcat(nmea, ",");
+  strcat(ksxt, fixTime);
+  strcat(ksxt, ",");
 
-    strcat(nmea, latNS);
-    strcat(nmea, ",");
+  strcat(ksxt, longitude);
+  strcat(ksxt, ",");
 
-    strcat(nmea, longitude);
-    strcat(nmea, ",");
+  strcat(ksxt, latitude);
+  strcat(ksxt, ",");
 
-    strcat(nmea, lonEW);
-    strcat(nmea, ",");
+  strcat(ksxt, height);
+  strcat(ksxt, ",");
 
-    // 6
-    strcat(nmea, fixQuality);
-    strcat(nmea, ",");
+  strcat(ksxt, imuHeading);
+  strcat(ksxt, ",");
 
-    strcat(nmea, numSats);
-    strcat(nmea, ",");
+  strcat(ksxt, imuPitch);
+  strcat(ksxt, ",");
 
-    strcat(nmea, HDOP);
-    strcat(nmea, ",");
+  strcat(ksxt, track);
+  strcat(ksxt, ",");
 
-    strcat(nmea, altitude);
-    strcat(nmea, ",");
+  strcat(ksxt, velocity);
+  strcat(ksxt, ",");
+  
+  strcat(ksxt, imuRoll);
+  strcat(ksxt, ",");
 
-    //10
-    strcat(nmea, ageDGPS);
-    strcat(nmea, ",");
+  strcat(ksxt, posQual);
+  strcat(ksxt, ",");
 
-    //11
-    strcat(nmea, speedKnots);
-    strcat(nmea, ",");
+  strcat(ksxt, headQual);
+  strcat(ksxt, ",");
 
-    //12
-    strcat(nmea, imuHeading);
-    strcat(nmea, ",");
+  strcat(ksxt, hSats);
+  strcat(ksxt, ",");
 
-    //13
-    strcat(nmea, imuRoll);
-    strcat(nmea, ",");
+  strcat(ksxt, mSats);
+  strcat(ksxt, ",");
 
-    //14
-    strcat(nmea, imuPitch);
-    strcat(nmea, ",");
+  strcat(ksxt, east);
+  strcat(ksxt, ",");
 
-    //15
-    strcat(nmea, imuYawRate);
+  strcat(ksxt, north);
+  strcat(ksxt, ",");
 
-    strcat(nmea, "*");
+  strcat(ksxt, up);
+  strcat(ksxt, ",");
 
-    CalculateChecksum();
+  strcat(ksxt, eastVel);
+  strcat(ksxt, ",");
 
-    strcat(nmea, "\r\n");
+  strcat(ksxt, northVel);
+  strcat(ksxt, ",");
 
-    if (sendUSB) { SerialAOG.write(nmea); } // Send USB GPS data if enabled in user settings
+  strcat(ksxt, upVel);
+  strcat(ksxt, ",,");
+
+  strcat(ksxt, "*");
+
+  CalculateChecksum();
+
+  strcat(ksxt, "\r\n");
+
+  if (sendUSB) { SerialAOG.write(ksxt); } // Send USB GPS data if enabled in user settings
     
     if (Ethernet_running)   //If ethernet running send the GPS there
     {
-        int len = strlen(nmea);
+        int len = strlen(ksxt);
         Eth_udpPAOGI.beginPacket(Eth_ipDestination, portDestination);
-        Eth_udpPAOGI.write(nmea, len);
+        Eth_udpPAOGI.write(ksxt, len);
         Eth_udpPAOGI.endPacket();
     }
 }
@@ -443,7 +394,7 @@ void CalculateChecksum(void)
   // The checksum calc starts after '$' and ends before '*'
   for (inx = 1; inx < 200; inx++)
   {
-    tmp = nmea[inx];
+    tmp = ksxt[inx];
 
     // * Indicates end of data and start of checksum
     if (tmp == '*')
@@ -456,11 +407,11 @@ void CalculateChecksum(void)
 
   byte chk = (sum >> 4);
   char hex[2] = { asciiHex[chk], 0 };
-  strcat(nmea, hex);
+  strcat(ksxt, hex);
 
   chk = (sum % 16);
   char hex2[2] = { asciiHex[chk], 0 };
-  strcat(nmea, hex2);
+  strcat(ksxt, hex2);
 }
 
 /*

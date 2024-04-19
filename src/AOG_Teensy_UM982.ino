@@ -14,7 +14,6 @@ Forked from https://github.com/AgHardware/Boards/blob/main/TeensyModules/AIO%20S
 #include "zNMEAParser.h"
 #include <Wire.h>
 #include "BNO08x_AOG.h"
-#include <SimpleKalmanFilter.h>
 // Ethernet Options (Teensy 4.1 Only)
 #ifdef ARDUINO_TEENSY41
 #include <NativeEthernet.h>
@@ -36,20 +35,6 @@ double headingcorr = 0;
 // Roll correction. Negative number = left; positive number = right.
 //double rollcorr = 50;
 
-// Kalman Filtering
-// e_mea: Measurement Uncertainty - How much do we expect to our measurement vary
-// e_est: Estimation Uncertainty - Can be initilized with the same value as e_mea since the kalman filter will adjust its value.
-// q: Process Variance - usually a small number between 0.001 and 1 - how fast your measurement moves. Recommended 0.01. Should be tunned to your needs.
-bool filterRoll = false;
-float rollMEA = 1;
-float rollEST = 1;
-float rollQ = 0.01;
-
-bool filterHeading = false;
-float headingMEA = 1;
-float headingEST = 1;
-float headingQ = 0.01;
-
 // Serial Ports
 #define SerialAOG Serial                //AgIO USB conection
 #define SerialRTK Serial3               //RTK radio
@@ -67,9 +52,6 @@ struct ConfigIP {
     uint8_t ipThree = 137;
 }; 
 /************************* End User Settings *********************/
-
-SimpleKalmanFilter rollFilter(rollMEA, rollEST, rollQ);
-SimpleKalmanFilter headingFilter(headingMEA, headingEST, headingQ);
 
 bool gotCR = false;
 bool gotLF = false;
@@ -94,14 +76,11 @@ uint32_t READ_BNO_TIME = 0;   //Used stop BNO data pile up (This version is with
 uint32_t gpsReadyTime = 0;        //Used for GGA timeout
 
 void errorHandler();
-void GGA_Handler();
-void VTG_Handler();
-void HPR_Handler();
+void SXT_Handler();
 void autosteerSetup();
 void EthernetStart();
 void udpNtrip();
-void BuildNmea();
-void relPosDecode();
+void BuildKsxt();
 void readBNO();
 void autosteerLoop();
 void ReceiveUdp();
@@ -229,9 +208,8 @@ void setup()
   // the dash means wildcard
  
   parser.setErrorHandler(errorHandler);
-  parser.addHandler("G-GGA", GGA_Handler);
-  parser.addHandler("G-VTG", VTG_Handler);
-  parser.addHandler("G-HPR", HPR_Handler);
+  parser.addHandler("KSXT", SXT_Handler);
+
 
   delay(10);
   Serial.begin(baudAOG);
@@ -392,13 +370,13 @@ void loop()
     //Serial.print(dualReadyGGA);
     //Serial.println(dualReadyRelPos);
     //delay(10);
-    if (dualReadyGGA == true && dualReadyRelPos == true )
-    {
-        imuHandler();
-        BuildNmea();
-        dualReadyGGA = false;
-        dualReadyRelPos = false;
-    }
+    // if (dualReadyGGA == true && dualReadyRelPos == true )
+    // {
+    //     imuHandler();
+    //     BuildKsxt();
+    //     dualReadyGGA = false;
+    //     dualReadyRelPos = false;
+    // }
 
     //Read BNO
     if((systick_millis_count - READ_BNO_TIME) > REPORT_INTERVAL && useBNO08x)
