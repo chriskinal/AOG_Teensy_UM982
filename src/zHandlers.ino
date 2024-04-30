@@ -13,16 +13,16 @@ const char* asciiHex = "0123456789ABCDEF";
 char ksxt[150];
 
 // GGA
-// char fixTime[12];
-// char latitude[15];
-// char latNS[3];
-// char longitude[15];
-// char lonEW[3];
-// char fixQuality[2];
-// char numSats[4];
-// char HDOP[5];
-// char altitude[12];
-// char ageDGPS[10];
+//char fixTime[12];
+char latitude[15];
+char latNS[3];
+char longitude[15];
+char lonEW[3];
+char fixQuality[2];
+char numSats[4];
+char HDOP[5];
+char altitude[12];
+char ageDGPS[10];
 
 // IMU
 char imuHeading[6];
@@ -33,8 +33,10 @@ char imuYawRate[6];
 //SXT
 char timeFix[18];
 char fixTime[18];
-char longitude[13];
-char latitude[12];
+char kLongitude[13];
+char kLatitude[12];
+// float kLongitude;
+// float kLatitude;
 char height[11];
 char kHeading[7];
 char kPitch[7];
@@ -51,6 +53,25 @@ char up[8];
 char eastVel[8];
 char northVel[8];
 char upVel[8];
+//int longitudeK;
+
+String double2string(double n, int ndec) {
+    String r = "";
+
+    int v = n;
+    r += v;     // whole number part
+    r += '.';   // decimal point
+    int i;
+    for (i=0;i<ndec;i++) {
+        // iterate through each decimal digit for 0..ndec 
+        n -= v;
+        n *= 10; 
+        v = n;
+        r += v;
+    }
+
+    return r;
+}
 
 // If odd characters showed up.
 void errorHandler()
@@ -60,9 +81,80 @@ void errorHandler()
 
 void SXT_Handler()
 {
+  // Fix time
   parser.getArg(0, timeFix);
-  parser.getArg(1, longitude);
-  parser.getArg(2, latitude);
+
+  // Longitude
+  parser.getArg(1, kLongitude);
+  Serial.println(kLongitude);
+    // Convert whole degree portion to string and replace sign with E or W
+  char *tmpLondegrees = strtok(kLongitude, ".");
+  char *endptr; 
+  int lonDegrees = strtod(tmpLondegrees, &endptr);
+  if ( lonDegrees < 0 )
+  {
+    lonEW[0] = 'W';
+  }
+  else
+  {
+    lonEW[0] = 'E';
+  }
+  lonDegrees = abs(lonDegrees);
+  //Serial.println(lonDegrees);
+    // Convert decimal portion to minutes
+  char *tmpLonfraction = strtok(NULL, ".");
+  char lonFraction[13] = "0.";
+  strcat(lonFraction,tmpLonfraction);
+  //Serial.println(strtod(lonFraction, &endptr), 8);
+  double lonFractionDbl = strtod(lonFraction, &endptr) / 0.01666666666666666666666666666667;
+    // Create GPS degrees & mintes string
+  String lonFractionStr = "";
+  char gpsLongitude[15];
+  lonFractionStr = double2string( lonFractionDbl, 8);
+  itoa(lonDegrees, gpsLongitude, 10);
+  strcat( gpsLongitude, lonFractionStr.c_str());
+ 
+  //Serial.println(lonFractionDbl, 7);
+  //Serial.println(lonFractionStr);
+  Serial.println(gpsLongitude);
+  
+  // Latitude
+  parser.getArg(2, kLatitude);
+  Serial.println(kLatitude);
+    // Convert whole degree portion to string and replace sign with E or W
+  char *tmpLatdegrees = strtok(kLatitude, ".");
+  //char *endptr; 
+  int latDegrees = strtod(tmpLatdegrees, &endptr);
+  if ( latDegrees < 0 )
+  {
+    latNS[0] = 'S';
+  }
+  else
+  {
+    latNS[0] = 'N';
+  }
+  latDegrees = abs(latDegrees);
+  //Serial.println(lonDegrees);
+    // Convert decimal portion to minutes
+  char *tmpLatfraction = strtok(NULL, ".");
+  char latFraction[13] = "0.";
+  strcat(latFraction,tmpLatfraction);
+  //Serial.println(strtod(lonFraction, &endptr), 8);
+  double latFractionDbl = strtod(latFraction, &endptr) / 0.01666666666666666666666666666667;
+    // Create GPS degrees & mintes string
+  String latFractionStr = "";
+  char gpsLatitude[15];
+  latFractionStr = double2string( latFractionDbl, 8);
+  itoa(latDegrees, gpsLatitude, 10);
+  strcat( gpsLatitude, latFractionStr.c_str());
+ 
+  //Serial.println(lonFractionDbl, 7);
+  //Serial.println(lonFractionStr);
+  Serial.println(gpsLatitude);
+
+
+
+  
   parser.getArg(3, height);
   parser.getArg(4, kHeading);
   parser.getArg(5, kPitch);
