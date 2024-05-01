@@ -12,6 +12,18 @@ const char* asciiHex = "0123456789ABCDEF";
 // new KSXT buffer
 char ksxt[150];
 
+// GGA
+char fixTime[12];
+char latitude[15];
+char latNS[3];
+char longitude[15];
+char lonEW[3];
+char fixQuality[2];
+char numSats[4];
+char HDOP[5];
+char altitude[12];
+char ageDGPS[10];
+
 // IMU
 char imuHeading[6];
 char imuRoll[6];
@@ -19,17 +31,20 @@ char imuPitch[6];
 char imuYawRate[6];
 
 //SXT
-char fixTime[18];
-char longitude[13];
-char latitude[12];
+char timeFix[18];
+//char fixTime[18];
+//char kLongitude[13];
+char klonEW[3];
+//char kLatitude[12];
+char klatNS[3];
+float kLongitude;
+float kLatitude;
 char height[11];
-//char sxtHeading[7];
-float sxtHeading;
-//char sxtPitch[7];
-float sxtPitch;
+char kHeading[7];
+char kPitch[7];
 char track[7];
 char velocity[8];
-char sxtRoll[7];
+char kRoll[7];
 char posQual[2];
 char headQual[2];
 char hSats[3];
@@ -40,6 +55,7 @@ char up[8];
 char eastVel[8];
 char northVel[8];
 char upVel[8];
+//int longitudeK;
 
 String double2string(double n, int ndec) {
     String r = "";
@@ -68,17 +84,30 @@ void errorHandler()
 void SXT_Handler()
 {
   // Fix time
-  parser.getArg(0, fixTime);
-  // Longitude
-  parser.getArg(1, longitude);
-  // Latitude
-  parser.getArg(2, latitude);
+  parser.getArg(0, timeFix);
+
+    // Longitude
+  parser.getArg(1, kLongitude);
+  int lonDegrees = kLongitude;
+  double lonFraction = kLongitude + abs(lonDegrees);
+  Serial.println(kLongitude, 10);
+  Serial.println(lonDegrees);
+  Serial.println(lonFraction, 10);
+
+  Serial.println("SXT Data");
+  Serial.println(timeFix);
+  //Serial.println(gpsLatitude);
+  Serial.println(klatNS);
+  //Serial.println(gpsLongitude);
+  Serial.println(klonEW);
+  Serial.println();
+    
   parser.getArg(3, height);
-  parser.getArg(4, sxtHeading);
-  parser.getArg(5, sxtPitch);
+  parser.getArg(4, kHeading);
+  parser.getArg(5, kPitch);
   parser.getArg(6, track);
   parser.getArg(7, velocity);
-  parser.getArg(8, sxtRoll);
+  parser.getArg(8, kRoll);
   parser.getArg(9, posQual);
   parser.getArg(10, headQual);
   parser.getArg(11, hSats);
@@ -91,8 +120,7 @@ void SXT_Handler()
   parser.getArg(18, upVel);
 
   imuHandler();
-  imuDualDelta();
-  BuildKsxt();
+  //BuildKsxt();
 
   if (blink)
   {
@@ -109,6 +137,28 @@ void SXT_Handler()
   // dualReadyGGA = true;
   
   gpsReadyTime = systick_millis_count;    //Used for GGA timeout (LED's ETC) 
+}
+
+void GGA_Handler() //Rec'd GGA
+{
+    // fix time
+    parser.getArg(0, fixTime);
+
+    // latitude
+    parser.getArg(1, latitude);
+    parser.getArg(2, latNS);
+
+    // longitude
+    parser.getArg(3, longitude);
+    parser.getArg(4, lonEW);
+
+    Serial.println("GGA Data");
+    Serial.println(fixTime);
+    Serial.println(latitude);
+    Serial.println(latNS);
+    Serial.println(longitude);
+    Serial.println(lonEW);
+    Serial.println();
 }
 
 void readBNO()
@@ -237,17 +287,34 @@ void imuHandler()
   else  //Not using IMU so put dual Heading & Roll in direct.
   {
       // the roll
-      dtostrf(sxtPitch, 4, 2, imuRoll);
+      if (makeOGI)
+      {
+        dtostrf(rollDual, 4, 2, imuRoll);
+      }
+      else
+      {
+        itoa(rollDual * 10, imuRoll, 10);
+      }
 
       // the Dual heading raw
-      dtostrf(sxtHeading, 4, 2, imuHeading);
+      if (makeOGI)
+      {
+        dtostrf(heading, 4, 2, imuHeading);
+      }
+      else
+      {
+        itoa(heading * 10, imuHeading, 10);
+      }
+
+      // the pitch
+      dtostrf(pitchDual, 4, 4, imuPitch);
   }
 }
 
 void imuDualDelta()
 {
                                        //correctionHeading is IMU heading in radians
-   gpsHeading = sxtHeading * DEG_TO_RAD;  //gpsHeading is Dual heading in radians
+   gpsHeading = heading * DEG_TO_RAD;  //gpsHeading is Dual heading in radians
 
    //Difference between the IMU heading and the GPS heading
    gyroDelta = (correctionHeading + imuGPS_Offset) - gpsHeading;
@@ -285,7 +352,7 @@ void imuDualDelta()
    //Calculate the diffrence between dual and imu roll
    float imuRoll;
    imuRoll = (int16_t)roll * 0.1;
-   rollDelta = sxtPitch - imuRoll;
+   rollDelta = rollDual - imuRoll;
    rollDeltaSmooth = (rollDeltaSmooth * 0.7) + (rollDelta * 0.3);
 }
 
@@ -305,7 +372,7 @@ void BuildKsxt(void) {
 
   strcat(ksxt, "$KSXT,");
 
-  strcat(ksxt, fixTime);
+  strcat(ksxt, timeFix);
   strcat(ksxt, ",");
 
   strcat(ksxt, longitude);

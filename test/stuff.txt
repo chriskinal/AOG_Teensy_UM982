@@ -1,0 +1,66 @@
+  // Longitude
+  parser.getArg(1, kLongitude);
+  //Serial.println(kLongitude);
+    // Convert whole degree portion to string and replace sign with E or W
+  char *tmpLondegrees = strtok(kLongitude, ".");
+  char *endptr; 
+  int lonDegrees = strtod(tmpLondegrees, &endptr);
+  if ( lonDegrees < 0 )
+  {
+    klonEW[0] = 'W';
+  }
+  else
+  {
+    klonEW[0] = 'E';
+  }
+  lonDegrees = abs(lonDegrees);
+  //Serial.println(lonDegrees);
+    // Convert decimal portion to minutes
+  char *tmpLonfraction = strtok(NULL, ".");
+  char lonFraction[13] = "0.";
+  strcat(lonFraction,tmpLonfraction);
+  //Serial.println(strtod(lonFraction, &endptr), 8);
+  double lonFractionDbl = strtod(lonFraction, &endptr) / 0.01666666666666666666666666666667;
+    // Create GPS degrees & mintes string
+  String lonFractionStr = "";
+  char gpsLongitude[15];
+  lonFractionStr = double2string( lonFractionDbl, 8);
+  itoa(lonDegrees, gpsLongitude, 10);
+  strcat( gpsLongitude, lonFractionStr.c_str());
+ 
+  //Serial.println(lonFractionDbl, 7);
+  //Serial.println(lonFractionStr);
+  //Serial.println(gpsLongitude);
+  
+  // Latitude
+  parser.getArg(2, kLatitude);
+  //Serial.println(kLatitude);
+    // Convert whole degree portion to string and replace sign with E or W
+  char *tmpLatdegrees = strtok(kLatitude, ".");
+  //char *endptr; 
+  int latDegrees = strtod(tmpLatdegrees, &endptr);
+  if ( latDegrees < 0 )
+  {
+    klatNS[0] = 'S';
+  }
+  else
+  {
+    klatNS[0] = 'N';
+  }
+  latDegrees = abs(latDegrees);
+  //Serial.println(lonDegrees);
+    // Convert decimal portion to minutes
+  char *tmpLatfraction = strtok(NULL, ".");
+  char latFraction[13] = "0.";
+  strcat(latFraction,tmpLatfraction);
+  //Serial.println(strtod(lonFraction, &endptr), 8);
+  double latFractionDbl = strtod(latFraction, &endptr) / 0.01666666666666666666666666666667;
+    // Create GPS degrees & mintes string
+  String latFractionStr = "";
+  char gpsLatitude[15];
+  latFractionStr = double2string( latFractionDbl, 8);
+  itoa(latDegrees, gpsLatitude, 10);
+  strcat( gpsLatitude, latFractionStr.c_str());
+ 
+  //Serial.println(lonFractionDbl, 7);
+  //Serial.println(lonFractionStr);
