@@ -90,8 +90,8 @@ void SXT_Handler()
   parser.getArg(17, northVel);
   parser.getArg(18, upVel);
 
-  imuHandler();
   imuDualDelta();
+  imuHandler();
   BuildKsxt();
 
   if (blink)
@@ -102,8 +102,8 @@ void SXT_Handler()
   {
       digitalWrite(GGAReceivedLED, LOW);
   }
-
   blink = !blink;
+  digitalWrite(GPSGREEN_LED, HIGH);   //Turn green GPS LED ON
   // GGA_Available = true;
 
   // dualReadyGGA = true;
@@ -263,7 +263,7 @@ void imuDualDelta()
    if (gyroDelta > twoPI) gyroDelta -= twoPI;
    if (gyroDelta < -twoPI) gyroDelta += twoPI;
 
-   //if the gyro and last corrected fix is < 10 degrees, super low pass for gps
+   //if the gyro and last corrected fix is < 10 degrees or 0.18 radians, super low pass for gps
    if (abs(gyroDelta) < 0.18)
    {
        //a bit of delta and add to correction to current gyro
@@ -287,6 +287,10 @@ void imuDualDelta()
    imuRoll = (int16_t)roll * 0.1;
    rollDelta = sxtPitch - imuRoll;
    rollDeltaSmooth = (rollDeltaSmooth * 0.7) + (rollDelta * 0.3);
+
+  //  Serial.println("imuDualDelta");
+  //  Serial.println(imuGPS_Offset);
+  //  Serial.println(rollDeltaSmooth);
 }
 
 void fuseIMU()
@@ -370,13 +374,13 @@ void BuildKsxt(void) {
 
   if (sendUSB) { SerialAOG.write(ksxt); } // Send USB GPS data if enabled in user settings
     
-    if (Ethernet_running)   //If ethernet running send the GPS there
-    {
-        int len = strlen(ksxt);
-        Eth_udpPAOGI.beginPacket(Eth_ipDestination, portDestination);
-        Eth_udpPAOGI.write(ksxt, len);
-        Eth_udpPAOGI.endPacket();
-    }
+  if (Ethernet_running)   //If ethernet running send the GPS there
+  {
+      int len = strlen(ksxt);
+      Eth_udpPAOGI.beginPacket(Eth_ipDestination, portDestination);
+      Eth_udpPAOGI.write(ksxt, len);
+      Eth_udpPAOGI.endPacket();
+  }
 }
 
 void CalculateChecksum(void)

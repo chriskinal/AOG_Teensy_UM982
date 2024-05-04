@@ -22,9 +22,9 @@ Forked from https://github.com/AgHardware/Boards/blob/main/TeensyModules/AIO%20S
 
 /************************* User Settings *************************/
 bool udpPassthrough = false;  // False = GPS neeeds to send GGA, VTG & HPR messages. True = GPS needs to send KSXT messages only.
-bool baseLineCheck = false;   //Set to true to use IMU fusion with UM982
+bool baseLineCheck = true;   //Set to true to use IMU fusion with UM982
 const bool invertRoll= true;  //Used for IMU with dual antenna
-#define baseLineLimit 5       //Max CM differance in baseline
+#define baseLineLimit 2       //Max CM differance in baseline
 
 // Heading correction can be enetered into the UM982 config or AOG GUI so this can be 0. If not in UM982 config or AOG GUI, set here.
 // Negative number = west, positive number = east.
@@ -48,7 +48,7 @@ bool sendUSB = true;
 struct ConfigIP {
     uint8_t ipOne = 192;
     uint8_t ipTwo = 168;
-    uint8_t ipThree = 137;
+    uint8_t ipThree = 5;
 }; 
 /************************* End User Settings *********************/
 
