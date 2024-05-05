@@ -14,6 +14,7 @@ Forked from https://github.com/AgHardware/Boards/blob/main/TeensyModules/AIO%20S
 #include "zNMEAParser.h"
 #include <Wire.h>
 #include "BNO08x_AOG.h"
+#include <FlexCAN_T4.h>
 // Ethernet Options (Teensy 4.1 Only)
 #ifdef ARDUINO_TEENSY41
 #include <NativeEthernet.h>
