@@ -26,6 +26,8 @@ bool baseLineCheck = true;   //Set to true to use IMU fusion with UM982
 const bool invertRoll= true;  //Used for IMU with dual antenna
 #define baseLineLimit 2       //Max CM differance in baseline
 
+bool swapRP = true; // Swap IMU roll and pitch depending on how the baord is mounted in the tractor.
+
 // Heading correction can be enetered into the UM982 config or AOG GUI so this can be 0. If not in UM982 config or AOG GUI, set here.
 // Negative number = west, positive number = east.
 double headingcorr = 0;

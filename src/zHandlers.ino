@@ -324,8 +324,16 @@ void BuildKsxt(void) {
   strcat(ksxt, imuHeading);
   strcat(ksxt, ",");
 
+  if ( swapRP )
+  {
+  strcat(ksxt, imuRoll);
+  strcat(ksxt, ",");
+  }
+  else
+  {
   strcat(ksxt, imuPitch);
   strcat(ksxt, ",");
+  }
 
   strcat(ksxt, track);
   strcat(ksxt, ",");
@@ -333,8 +341,16 @@ void BuildKsxt(void) {
   strcat(ksxt, velocity);
   strcat(ksxt, ",");
   
+  if ( swapRP )
+  {
+  strcat(ksxt, imuPitch);
+  strcat(ksxt, ",");
+  }
+  else
+  {
   strcat(ksxt, imuRoll);
   strcat(ksxt, ",");
+  }
 
   strcat(ksxt, posQual);
   strcat(ksxt, ",");
