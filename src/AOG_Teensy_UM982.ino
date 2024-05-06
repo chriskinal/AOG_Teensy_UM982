@@ -295,6 +295,8 @@ void setup()
   Serial.print("useBNO08x = ");
   Serial.println(useBNO08x);
 
+  // Keya support
+  CAN_Setup();
   Serial.println("\r\nEnd setup, waiting for GPS...\r\n");
 }
 
