@@ -302,6 +302,9 @@ void setup()
 
 void loop()
 {
+
+    // Keya support
+    KeyaBus_Receive();
     // Read incoming nmea from GPS
     if (SerialGPS->available())
     {
