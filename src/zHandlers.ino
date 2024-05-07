@@ -1,13 +1,13 @@
 /* Copywrite 2024 chriskinal
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
 published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied 
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 // Conversion to Hexidecimal
-const char* asciiHex = "0123456789ABCDEF";
+const char *asciiHex = "0123456789ABCDEF";
 
 // new KSXT buffer
 char ksxt[150];
@@ -18,14 +18,14 @@ char imuRoll[6];
 char imuPitch[6];
 char imuYawRate[6];
 
-//SXT
+// SXT
 char fixTime[18];
 char longitude[13];
 char latitude[12];
 char height[11];
-//char sxtHeading[7];
+// char sxtHeading[7];
 float sxtHeading;
-//char sxtPitch[7];
+// char sxtPitch[7];
 float sxtPitch;
 char track[7];
 char velocity[8];
@@ -41,28 +41,30 @@ char eastVel[8];
 char northVel[8];
 char upVel[8];
 
-String double2string(double n, int ndec) {
-    String r = "";
+String double2string(double n, int ndec)
+{
+  String r = "";
 
-    int v = n;
-    r += v;     // whole number part
-    r += '.';   // decimal point
-    int i;
-    for (i=0;i<ndec;i++) {
-        // iterate through each decimal digit for 0..ndec 
-        n -= v;
-        n *= 10; 
-        v = n;
-        r += v;
-    }
+  int v = n;
+  r += v;   // whole number part
+  r += '.'; // decimal point
+  int i;
+  for (i = 0; i < ndec; i++)
+  {
+    // iterate through each decimal digit for 0..ndec
+    n -= v;
+    n *= 10;
+    v = n;
+    r += v;
+  }
 
-    return r;
+  return r;
 }
 
 // If odd characters showed up.
 void errorHandler()
 {
-  //nothing at the moment
+  // nothing at the moment
 }
 
 void SXT_Handler()
@@ -96,91 +98,92 @@ void SXT_Handler()
 
   if (blink)
   {
-      digitalWrite(GGAReceivedLED, HIGH);
+    digitalWrite(GGAReceivedLED, HIGH);
   }
   else
   {
-      digitalWrite(GGAReceivedLED, LOW);
+    digitalWrite(GGAReceivedLED, LOW);
   }
   blink = !blink;
-  digitalWrite(GPSGREEN_LED, HIGH);   //Turn green GPS LED ON
+  digitalWrite(GPSGREEN_LED, HIGH); // Turn green GPS LED ON
   // GGA_Available = true;
 
   // dualReadyGGA = true;
-  
-  gpsReadyTime = systick_millis_count;    //Used for GGA timeout (LED's ETC) 
+
+  gpsReadyTime = systick_millis_count; // Used for GGA timeout (LED's ETC)
 }
 
 void readBNO()
 {
-          if (bno08x.dataAvailable() == true)
-        {
-            float dqx, dqy, dqz, dqw, dacr;
-            uint8_t dac;
+  if (bno08x.dataAvailable() == true)
+  {
+    float dqx, dqy, dqz, dqw, dacr;
+    uint8_t dac;
 
-            //get quaternion
-            bno08x.getQuat(dqx, dqy, dqz, dqw, dacr, dac);
-/*            
-            while (bno08x.dataAvailable() == true)
-            {
-                //get quaternion
-                bno08x.getQuat(dqx, dqy, dqz, dqw, dacr, dac);
-                //Serial.println("Whiling");
-                //Serial.print(dqx, 4);
-                //Serial.print(F(","));
-                //Serial.print(dqy, 4);
-                //Serial.print(F(","));
-                //Serial.print(dqz, 4);
-                //Serial.print(F(","));
-                //Serial.println(dqw, 4);
-            }
-            //Serial.println("End of while");
-*/            
-            float norm = sqrt(dqw * dqw + dqx * dqx + dqy * dqy + dqz * dqz);
-            dqw = dqw / norm;
-            dqx = dqx / norm;
-            dqy = dqy / norm;
-            dqz = dqz / norm;
+    // get quaternion
+    bno08x.getQuat(dqx, dqy, dqz, dqw, dacr, dac);
+    /*
+                while (bno08x.dataAvailable() == true)
+                {
+                    //get quaternion
+                    bno08x.getQuat(dqx, dqy, dqz, dqw, dacr, dac);
+                    //Serial.println("Whiling");
+                    //Serial.print(dqx, 4);
+                    //Serial.print(F(","));
+                    //Serial.print(dqy, 4);
+                    //Serial.print(F(","));
+                    //Serial.print(dqz, 4);
+                    //Serial.print(F(","));
+                    //Serial.println(dqw, 4);
+                }
+                //Serial.println("End of while");
+    */
+    float norm = sqrt(dqw * dqw + dqx * dqx + dqy * dqy + dqz * dqz);
+    dqw = dqw / norm;
+    dqx = dqx / norm;
+    dqy = dqy / norm;
+    dqz = dqz / norm;
 
-            float ysqr = dqy * dqy;
+    float ysqr = dqy * dqy;
 
-            // yaw (z-axis rotation)
-            float t3 = +2.0 * (dqw * dqz + dqx * dqy);
-            float t4 = +1.0 - 2.0 * (ysqr + dqz * dqz);
-            yaw = atan2(t3, t4);
+    // yaw (z-axis rotation)
+    float t3 = +2.0 * (dqw * dqz + dqx * dqy);
+    float t4 = +1.0 - 2.0 * (ysqr + dqz * dqz);
+    yaw = atan2(t3, t4);
 
-            // Convert yaw to degrees x10
-            correctionHeading = -yaw;
-            yaw = (int16_t)((yaw * -RAD_TO_DEG_X_10));
-            if (yaw < 0) yaw += 3600;
+    // Convert yaw to degrees x10
+    correctionHeading = -yaw;
+    yaw = (int16_t)((yaw * -RAD_TO_DEG_X_10));
+    if (yaw < 0)
+      yaw += 3600;
 
-            // pitch (y-axis rotation)
-            float t2 = +2.0 * (dqw * dqy - dqz * dqx);
-            t2 = t2 > 1.0 ? 1.0 : t2;
-            t2 = t2 < -1.0 ? -1.0 : t2;
-//            pitch = asin(t2) * RAD_TO_DEG_X_10;
+    // pitch (y-axis rotation)
+    float t2 = +2.0 * (dqw * dqy - dqz * dqx);
+    t2 = t2 > 1.0 ? 1.0 : t2;
+    t2 = t2 < -1.0 ? -1.0 : t2;
+    //            pitch = asin(t2) * RAD_TO_DEG_X_10;
 
-            // roll (x-axis rotation)
-            float t0 = +2.0 * (dqw * dqx + dqy * dqz);
-            float t1 = +1.0 - 2.0 * (dqx * dqx + ysqr);
-//            roll = atan2(t0, t1) * RAD_TO_DEG_X_10;
+    // roll (x-axis rotation)
+    float t0 = +2.0 * (dqw * dqx + dqy * dqz);
+    float t1 = +1.0 - 2.0 * (dqx * dqx + ysqr);
+    //            roll = atan2(t0, t1) * RAD_TO_DEG_X_10;
 
-            if(steerConfig.IsUseY_Axis)
-            {
-              roll = asin(t2) * RAD_TO_DEG_X_10;
-              pitch = atan2(t0, t1) * RAD_TO_DEG_X_10;
-            }
-            else
-            {
-              pitch = asin(t2) * RAD_TO_DEG_X_10;
-              roll = atan2(t0, t1) * RAD_TO_DEG_X_10;
-            }
-            
-            if(invertRoll)
-            {
-              roll *= -1;
-            }
-        }
+    if (steerConfig.IsUseY_Axis)
+    {
+      roll = asin(t2) * RAD_TO_DEG_X_10;
+      pitch = atan2(t0, t1) * RAD_TO_DEG_X_10;
+    }
+    else
+    {
+      pitch = asin(t2) * RAD_TO_DEG_X_10;
+      roll = atan2(t0, t1) * RAD_TO_DEG_X_10;
+    }
+
+    if (invertRoll)
+    {
+      roll *= -1;
+    }
+  }
 }
 
 void imuHandler()
@@ -189,104 +192,117 @@ void imuHandler()
 
   if (useBNO08x)
   {
-      //BNO is reading in its own timer    
-      // Fill rest of Panda Sentence - Heading
-      temp = yaw;
-      itoa(temp, imuHeading, 10);
+    // BNO is reading in its own timer
+    //  Fill rest of Panda Sentence - Heading
+    temp = yaw;
+    itoa(temp, imuHeading, 10);
 
-      // the pitch x10
-      temp = (int16_t)pitch;
-      itoa(temp, imuPitch, 10);
+    // the pitch x10
+    temp = (int16_t)pitch;
+    itoa(temp, imuPitch, 10);
 
-      // the roll x10
-      temp = (int16_t)roll;
-      itoa(temp, imuRoll, 10);
+    // the roll x10
+    temp = (int16_t)roll;
+    itoa(temp, imuRoll, 10);
 
-      // YawRate - 0 for now
-      itoa(0, imuYawRate, 10);
+    // YawRate - 0 for now
+    itoa(0, imuYawRate, 10);
   }
 
   // No else, because we want to use dual heading and IMU roll when both connected
   // We have a IMU so apply the dual/IMU roll/heading error to the IMU data.
-  if ( useBNO08x && baseLineCheck)
+  if (useBNO08x && baseLineCheck)
   {
-      float dualTemp;   //To convert IMU data (x10) to a float for the PAOGI so we have the decamal point
-              
-      // the IMU heading raw
-      // dualTemp = yaw * 0.1;
-      // dtostrf(dualTemp, 3, 1, imuHeading);          
+    float dualTemp; // To convert IMU data (x10) to a float for the PAOGI so we have the decamal point
 
-      // the IMU heading fused to the dual heading
-      fuseIMU();
-      dtostrf(imuCorrected, 3, 1, imuHeading);
-    
-      // the pitch
-      dualTemp = (int16_t)pitch * 0.1;
-      dtostrf(dualTemp, 3, 1, imuPitch);
+    // the IMU heading raw
+    // dualTemp = yaw * 0.1;
+    // dtostrf(dualTemp, 3, 1, imuHeading);
 
-      // the roll
-      dualTemp = (int16_t)roll * 0.1;
-      //If dual heading correction is 90deg (antennas left/right) correct the IMU roll
-      if(headingcorr == 900)
-      {
-        dualTemp += rollDeltaSmooth;
-      }
-      dtostrf(dualTemp, 3, 1, imuRoll);
+    // the IMU heading fused to the dual heading
+    fuseIMU();
+    dtostrf(imuCorrected, 3, 1, imuHeading);
 
+    // the pitch
+    dualTemp = (int16_t)pitch * 0.1;
+    dtostrf(dualTemp, 3, 1, imuPitch);
+
+    // the roll
+    dualTemp = (int16_t)roll * 0.1;
+    // If dual heading correction is 90deg (antennas left/right) correct the IMU roll
+    if (headingcorr == 900)
+    {
+      dualTemp += rollDeltaSmooth;
+    }
+    dtostrf(dualTemp, 3, 1, imuRoll);
   }
-  else  //Not using IMU so put dual Heading & Roll in direct.
+  else // Not using IMU so put dual Heading & Roll in direct.
   {
-      // the roll
-      dtostrf(sxtPitch, 4, 2, imuRoll);
+    // the roll
+    dtostrf(sxtPitch, 4, 2, imuRoll);
 
-      // the Dual heading raw
-      dtostrf(sxtHeading, 4, 2, imuHeading);
+    // the Dual heading raw
+    dtostrf(sxtHeading, 4, 2, imuHeading);
   }
 }
 
 void imuDualDelta()
 {
-                                       //correctionHeading is IMU heading in radians
-   gpsHeading = sxtHeading * DEG_TO_RAD;  //gpsHeading is Dual heading in radians
+  // correctionHeading is IMU heading in radians
+  gpsHeading = sxtHeading * DEG_TO_RAD; // gpsHeading is Dual heading in radians
 
-   //Difference between the IMU heading and the GPS heading
-   gyroDelta = (correctionHeading + imuGPS_Offset) - gpsHeading;
-   if (gyroDelta < 0) gyroDelta += twoPI;
+  // Difference between the IMU heading and the GPS heading
+  gyroDelta = (correctionHeading + imuGPS_Offset) - gpsHeading;
+  if (gyroDelta < 0)
+    gyroDelta += twoPI;
 
-   //calculate delta based on circular data problem 0 to 360 to 0, clamp to +- 2 Pi
-   if (gyroDelta >= -PIBy2 && gyroDelta <= PIBy2) gyroDelta *= -1.0;
-   else
-   {
-       if (gyroDelta > PIBy2) { gyroDelta = twoPI - gyroDelta; }
-       else { gyroDelta = (twoPI + gyroDelta) * -1.0; }
-   }
-   if (gyroDelta > twoPI) gyroDelta -= twoPI;
-   if (gyroDelta < -twoPI) gyroDelta += twoPI;
+  // calculate delta based on circular data problem 0 to 360 to 0, clamp to +- 2 Pi
+  if (gyroDelta >= -PIBy2 && gyroDelta <= PIBy2)
+    gyroDelta *= -1.0;
+  else
+  {
+    if (gyroDelta > PIBy2)
+    {
+      gyroDelta = twoPI - gyroDelta;
+    }
+    else
+    {
+      gyroDelta = (twoPI + gyroDelta) * -1.0;
+    }
+  }
+  if (gyroDelta > twoPI)
+    gyroDelta -= twoPI;
+  if (gyroDelta < -twoPI)
+    gyroDelta += twoPI;
 
-   //if the gyro and last corrected fix is < 10 degrees or 0.18 radians, super low pass for gps
-   if (abs(gyroDelta) < 0.18)
-   {
-       //a bit of delta and add to correction to current gyro
-       imuGPS_Offset += (gyroDelta * (0.1));
-       if (imuGPS_Offset > twoPI) imuGPS_Offset -= twoPI;
-       if (imuGPS_Offset < -twoPI) imuGPS_Offset += twoPI;
-   }
-   else
-   {
-       //a bit of delta and add to correction to current gyro
-       imuGPS_Offset += (gyroDelta * (0.2));
-       if (imuGPS_Offset > twoPI) imuGPS_Offset -= twoPI;
-       if (imuGPS_Offset < -twoPI) imuGPS_Offset += twoPI;
-   }
+  // if the gyro and last corrected fix is < 10 degrees or 0.18 radians, super low pass for gps
+  if (abs(gyroDelta) < 0.18)
+  {
+    // a bit of delta and add to correction to current gyro
+    imuGPS_Offset += (gyroDelta * (0.1));
+    if (imuGPS_Offset > twoPI)
+      imuGPS_Offset -= twoPI;
+    if (imuGPS_Offset < -twoPI)
+      imuGPS_Offset += twoPI;
+  }
+  else
+  {
+    // a bit of delta and add to correction to current gyro
+    imuGPS_Offset += (gyroDelta * (0.2));
+    if (imuGPS_Offset > twoPI)
+      imuGPS_Offset -= twoPI;
+    if (imuGPS_Offset < -twoPI)
+      imuGPS_Offset += twoPI;
+  }
 
-   //So here how we have the difference between the IMU heading and the Dual GPS heading
-   //This "imuGPS_Offset" will be used in imuHandler() when the GGA arrives 
+  // So here how we have the difference between the IMU heading and the Dual GPS heading
+  // This "imuGPS_Offset" will be used in imuHandler() when the GGA arrives
 
-   //Calculate the diffrence between dual and imu roll
-   float imuRoll;
-   imuRoll = (int16_t)roll * 0.1;
-   rollDelta = sxtPitch - imuRoll;
-   rollDeltaSmooth = (rollDeltaSmooth * 0.7) + (rollDelta * 0.3);
+  // Calculate the diffrence between dual and imu roll
+  float imuRoll;
+  imuRoll = (int16_t)roll * 0.1;
+  rollDelta = sxtPitch - imuRoll;
+  rollDeltaSmooth = (rollDeltaSmooth * 0.7) + (rollDelta * 0.3);
 
   //  Serial.println("imuDualDelta");
   //  Serial.println(imuGPS_Offset);
@@ -294,16 +310,19 @@ void imuDualDelta()
 }
 
 void fuseIMU()
-{     
-   //determine the Corrected heading based on gyro and GPS
-   imuCorrected = correctionHeading + imuGPS_Offset;
-   if (imuCorrected > twoPI) imuCorrected -= twoPI;
-   if (imuCorrected < 0) imuCorrected += twoPI;
+{
+  // determine the Corrected heading based on gyro and GPS
+  imuCorrected = correctionHeading + imuGPS_Offset;
+  if (imuCorrected > twoPI)
+    imuCorrected -= twoPI;
+  if (imuCorrected < 0)
+    imuCorrected += twoPI;
 
-   imuCorrected = imuCorrected * RAD_TO_DEG; 
+  imuCorrected = imuCorrected * RAD_TO_DEG;
 }
 
-void BuildKsxt(void) {
+void BuildKsxt(void)
+{
 
   strcpy(ksxt, "");
 
@@ -324,15 +343,15 @@ void BuildKsxt(void) {
   strcat(ksxt, imuHeading);
   strcat(ksxt, ",");
 
-  if ( swapRP )
+  if (swapRP)
   {
-  strcat(ksxt, imuRoll);
-  strcat(ksxt, ",");
+    strcat(ksxt, imuRoll);
+    strcat(ksxt, ",");
   }
   else
   {
-  strcat(ksxt, imuPitch);
-  strcat(ksxt, ",");
+    strcat(ksxt, imuPitch);
+    strcat(ksxt, ",");
   }
 
   strcat(ksxt, track);
@@ -340,16 +359,16 @@ void BuildKsxt(void) {
 
   strcat(ksxt, velocity);
   strcat(ksxt, ",");
-  
-  if ( swapRP )
+
+  if (swapRP)
   {
-  strcat(ksxt, imuPitch);
-  strcat(ksxt, ",");
+    strcat(ksxt, imuPitch);
+    strcat(ksxt, ",");
   }
   else
   {
-  strcat(ksxt, imuRoll);
-  strcat(ksxt, ",");
+    strcat(ksxt, imuRoll);
+    strcat(ksxt, ",");
   }
 
   strcat(ksxt, posQual);
@@ -388,14 +407,17 @@ void BuildKsxt(void) {
 
   strcat(ksxt, "\r\n");
 
-  if (sendUSB) { SerialAOG.write(ksxt); } // Send USB GPS data if enabled in user settings
-    
-  if (Ethernet_running)   //If ethernet running send the GPS there
+  if (sendUSB)
   {
-      int len = strlen(ksxt);
-      Eth_udpPAOGI.beginPacket(Eth_ipDestination, portDestination);
-      Eth_udpPAOGI.write(ksxt, len);
-      Eth_udpPAOGI.endPacket();
+    SerialAOG.write(ksxt);
+  } // Send USB GPS data if enabled in user settings
+
+  if (Ethernet_running) // If ethernet running send the GPS there
+  {
+    int len = strlen(ksxt);
+    Eth_udpPAOGI.beginPacket(Eth_ipDestination, portDestination);
+    Eth_udpPAOGI.write(ksxt, len);
+    Eth_udpPAOGI.endPacket();
   }
 }
 
@@ -416,15 +438,15 @@ void CalculateChecksum(void)
       break;
     }
 
-    sum ^= tmp;    // Build checksum
+    sum ^= tmp; // Build checksum
   }
 
   byte chk = (sum >> 4);
-  char hex[2] = { asciiHex[chk], 0 };
+  char hex[2] = {asciiHex[chk], 0};
   strcat(ksxt, hex);
 
   chk = (sum % 16);
-  char hex2[2] = { asciiHex[chk], 0 };
+  char hex2[2] = {asciiHex[chk], 0};
   strcat(ksxt, hex2);
 }
 
