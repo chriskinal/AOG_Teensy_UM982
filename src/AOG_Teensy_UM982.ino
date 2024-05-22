@@ -291,18 +291,23 @@ void setup()
             SerialGPS->read();
           }
           // Set UM982 operating mode
-          Serial.println("Setting mode");
-          SerialGPS->write("MODE ROVER AUTOMOTIVE\r\n");
+          Serial.println("Setting rover mode");
+          SerialGPS->write("MODE ROVER SURVEY\r\n");
           delay(100);
 
-          // Set heading to tractor
+          // Set heading to variablelength
           Serial.println("Setting heading to variablelength");
           SerialGPS->write("CONFIG HEADING VARIABLELENGTH\r\n");
           delay(100);
 
           // Set heading smoothing
           Serial.println("Setting heading smoothing");
-          SerialGPS->write("CONFIG SMOOTH HEADING 5\r\n");
+          SerialGPS->write("CONFIG SMOOTH HEADING 10\r\n");
+          delay(100);
+
+          // Set rtk height smoothing
+          Serial.println("Setting rtkheight smoothing");
+          SerialGPS->write("CONFIG SMOOTH RTKHEIGHT 10\r\n");
           delay(100);
 
           // Set COM1 to 460800
