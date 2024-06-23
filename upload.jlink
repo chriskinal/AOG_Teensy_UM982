@@ -1,0 +1,4 @@
+h
+loadfile .pio/build/teensy41/firmware.hex
+r
+q
