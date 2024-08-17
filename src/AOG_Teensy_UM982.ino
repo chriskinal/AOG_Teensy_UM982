@@ -11,15 +11,14 @@ Forked from https://github.com/AgHardware/Boards/blob/main/TeensyModules/AIO%20S
 // Teensy Serial 7 RX (28) to F9P Position receiver TX1 (Position data)
 // Teensy Serial 7 TX (29) to F9P Position receiver RX1 (RTCM data for RTK)
 //
+#include <Arduino.h>
 #include "zNMEAParser.h"
 #include <Wire.h>
 #include "BNO08x_AOG.h"
 #include <FlexCAN_T4.h>
-// Ethernet Options (Teensy 4.1 Only)
-#ifdef ARDUINO_TEENSY41
 #include <NativeEthernet.h>
 #include <NativeEthernetUdp.h>
-#endif // ARDUINO_TEENSY41
+
 
 /************************* User Settings *************************/
 bool udpPassthrough = false;  // False = GPS neeeds to send GGA, VTG & HPR messages. True = GPS needs to send KSXT messages only.
@@ -55,7 +54,6 @@ struct ConfigIP
   uint8_t ipThree = 5;
 };
 /************************* End User Settings *********************/
-
 // Keya Support
 // CRX1/CTX1 on Teensy are CAN1 on Tony's board
 // CRX2/CTX2 on Teensy are CAN2 on AIO board, CAN2 on Tony's board
