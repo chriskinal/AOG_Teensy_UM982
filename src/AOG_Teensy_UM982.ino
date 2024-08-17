@@ -19,7 +19,6 @@ Forked from https://github.com/AgHardware/Boards/blob/main/TeensyModules/AIO%20S
 #include <NativeEthernet.h>
 #include <NativeEthernetUdp.h>
 
-
 /************************* User Settings *************************/
 bool udpPassthrough = false;  // False = GPS neeeds to send GGA, VTG & HPR messages. True = GPS needs to send KSXT messages only.
 bool baseLineCheck = true;    // Set to true to use IMU fusion with UM982

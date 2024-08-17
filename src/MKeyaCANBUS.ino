@@ -156,14 +156,16 @@ void KeyaBus_Receive()
       // 6-7 - Control_Close (error code)
       // TODO Yeah, if we ever see something here, fire off a disable, refuse to engage autosteer or..?
       uint32_t time = millis();
-      if (debugKeya) {
+      if (debugKeya)
+      {
         Serial.print(time);
         Serial.print(" ");
         Serial.print(time - hbTime);
         Serial.print(" ");
       }
       hbTime = time;
-      if (debugKeya) {
+      if (debugKeya)
+      {
         printIdAndReply(KeyaBusReceiveData.id, KeyaBusReceiveData.buf);
         Serial.print(" HB ");
 
@@ -209,7 +211,8 @@ void KeyaBus_Receive()
         Serial.print(" "); // Serial.print(KeyaCurrentSensorReading);
       }
       keyaMotorStatus = !bitRead(KeyaBusReceiveData.buf[7], 0);
-      if (debugKeya) {
+      if (debugKeya)
+      {
         Serial.print("\r\nmotor status ");
         Serial.print(keyaMotorStatus);
       }
@@ -329,21 +332,24 @@ void KeyaBus_Receive()
       else if (isPatternMatch(KeyaBusReceiveData, keyaCurrentResponse, sizeof(keyaCurrentResponse)))
       {
         uint32_t time = millis();
-        if (debugKeya) {
+        if (debugKeya)
+        {
           Serial.print(time);
           Serial.print(" ");
           Serial.print(time - keyaTime);
           Serial.print(" ");
         }
         keyaTime = time;
-        if (debugKeya) {
+        if (debugKeya)
+        {
           printIdAndReply(KeyaBusReceiveData.id, KeyaBusReceiveData.buf);
           Serial.print(" current reply ");
           Serial.print(KeyaBusReceiveData.buf[4]);
         }
         KeyaCurrentSensorReading = KeyaBusReceiveData.buf[4] * 2.5; // so that AoG's display shows "amps"
         keyaCurrentUpdateTimer -= 100;
-        if (debugKeya) {
+        if (debugKeya)
+        {
           Serial.print(" ave ");
           Serial.print(sensorReading / 2.5); // to print ave in "amps"
         }

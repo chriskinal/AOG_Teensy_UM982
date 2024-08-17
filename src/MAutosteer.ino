@@ -781,7 +781,7 @@ void ReceiveUdp()
         // Re-Init
         steerConfigInit();
 
-      }                                    // end FB
+      } // end FB
       else if (autoSteerUdpData[3] == 200) // Hello from AgIO
       {
         if (Autosteer_running)
