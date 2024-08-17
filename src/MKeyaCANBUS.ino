@@ -156,57 +156,63 @@ void KeyaBus_Receive()
       // 6-7 - Control_Close (error code)
       // TODO Yeah, if we ever see something here, fire off a disable, refuse to engage autosteer or..?
       uint32_t time = millis();
-      Serial.print(time);
-      Serial.print(" ");
-      Serial.print(time - hbTime);
-      Serial.print(" ");
+      if (debugKeya) {
+        Serial.print(time);
+        Serial.print(" ");
+        Serial.print(time - hbTime);
+        Serial.print(" ");
+      }
       hbTime = time;
-      printIdAndReply(KeyaBusReceiveData.id, KeyaBusReceiveData.buf);
-      Serial.print(" HB ");
+      if (debugKeya) {
+        printIdAndReply(KeyaBusReceiveData.id, KeyaBusReceiveData.buf);
+        Serial.print(" HB ");
 
-      // calc speed
-      Serial.print(KeyaBusReceiveData.buf[2]);
-      Serial.print(":");
-      Serial.print(KeyaBusReceiveData.buf[3]);
-      Serial.print("=");
-      if (KeyaBusReceiveData.buf[2] == 0xFF)
-      {
-        Serial.print("-");
-        Serial.print(255 - KeyaBusReceiveData.buf[3]);
-      }
-      else
-      {
+        // calc speed
+        Serial.print(KeyaBusReceiveData.buf[2]);
+        Serial.print(":");
         Serial.print(KeyaBusReceiveData.buf[3]);
-      }
-      Serial.print(" ");
+        Serial.print("=");
+        if (KeyaBusReceiveData.buf[2] == 0xFF)
+        {
+          Serial.print("-");
+          Serial.print(255 - KeyaBusReceiveData.buf[3]);
+        }
+        else
+        {
+          Serial.print(KeyaBusReceiveData.buf[3]);
+        }
+        Serial.print(" ");
 
-      // calc current
-      Serial.print(KeyaBusReceiveData.buf[4]);
-      Serial.print(":");
-      Serial.print(KeyaBusReceiveData.buf[5]);
-      Serial.print("=");
-      if (KeyaBusReceiveData.buf[4] == 0xFF)
-      {
-        Serial.print("-");
-        Serial.print(255 - KeyaBusReceiveData.buf[5]);
-        // KeyaCurrentSensorReading = (255 - KeyaBusReceiveData.buf[5]) * 20;  // use other motor current query data
-      }
-      else
-      {
+        // calc current
+        Serial.print(KeyaBusReceiveData.buf[4]);
+        Serial.print(":");
         Serial.print(KeyaBusReceiveData.buf[5]);
-        // KeyaCurrentSensorReading = KeyaBusReceiveData.buf[5] * 20;
-      }
-      // keyaCurrentUpdateTimer = 0;
-      Serial.print(" ");
+        Serial.print("=");
+        if (KeyaBusReceiveData.buf[4] == 0xFF)
+        {
+          Serial.print("-");
+          Serial.print(255 - KeyaBusReceiveData.buf[5]);
+          // KeyaCurrentSensorReading = (255 - KeyaBusReceiveData.buf[5]) * 20;  // use other motor current query data
+        }
+        else
+        {
+          Serial.print(KeyaBusReceiveData.buf[5]);
+          // KeyaCurrentSensorReading = KeyaBusReceiveData.buf[5] * 20;
+        }
+        // keyaCurrentUpdateTimer = 0;
+        Serial.print(" ");
 
-      // print error status
-      Serial.print(KeyaBusReceiveData.buf[6]);
-      Serial.print(":");
-      Serial.print(KeyaBusReceiveData.buf[7]);
-      Serial.print(" "); // Serial.print(KeyaCurrentSensorReading);
+        // print error status
+        Serial.print(KeyaBusReceiveData.buf[6]);
+        Serial.print(":");
+        Serial.print(KeyaBusReceiveData.buf[7]);
+        Serial.print(" "); // Serial.print(KeyaCurrentSensorReading);
+      }
       keyaMotorStatus = !bitRead(KeyaBusReceiveData.buf[7], 0);
-      Serial.print("\r\nmotor status ");
-      Serial.print(keyaMotorStatus);
+      if (debugKeya) {
+        Serial.print("\r\nmotor status ");
+        Serial.print(keyaMotorStatus);
+      }
 
       // check if there's any motor diag/error data and parse it
       if (KeyaBusReceiveData.buf[7] != 0)
@@ -323,18 +329,24 @@ void KeyaBus_Receive()
       else if (isPatternMatch(KeyaBusReceiveData, keyaCurrentResponse, sizeof(keyaCurrentResponse)))
       {
         uint32_t time = millis();
-        Serial.print(time);
-        Serial.print(" ");
-        Serial.print(time - keyaTime);
-        Serial.print(" ");
+        if (debugKeya) {
+          Serial.print(time);
+          Serial.print(" ");
+          Serial.print(time - keyaTime);
+          Serial.print(" ");
+        }
         keyaTime = time;
-        printIdAndReply(KeyaBusReceiveData.id, KeyaBusReceiveData.buf);
-        Serial.print(" current reply ");
-        Serial.print(KeyaBusReceiveData.buf[4]);
+        if (debugKeya) {
+          printIdAndReply(KeyaBusReceiveData.id, KeyaBusReceiveData.buf);
+          Serial.print(" current reply ");
+          Serial.print(KeyaBusReceiveData.buf[4]);
+        }
         KeyaCurrentSensorReading = KeyaBusReceiveData.buf[4] * 2.5; // so that AoG's display shows "amps"
         keyaCurrentUpdateTimer -= 100;
-        Serial.print(" ave ");
-        Serial.print(sensorReading / 2.5); // to print ave in "amps"
+        if (debugKeya) {
+          Serial.print(" ave ");
+          Serial.print(sensorReading / 2.5); // to print ave in "amps"
+        }
       }
 
       // Fault query response
