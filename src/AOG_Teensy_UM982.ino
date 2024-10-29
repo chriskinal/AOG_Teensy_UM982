@@ -19,6 +19,7 @@ bool makeOGI = true;          // Set to true to make PAOGI messages. Else PANDA 
 const bool invertRoll = true; // Used for IMU with dual antenna
 bool baseLineCheck = false;   // Set to true to use IMU fusion with UM982
 #define baseLineLimit 5       // Max CM differance in baseline for fusion
+bool um982Autoconfig = false; // Enable or disable automatic configuration of the UM982
 
 // Heading correction can be enetered into the UM982 config or AOG GUI so this can be 0. If not in UM982 config or AOG GUI, set here.
 // Negative number = west, positive number = east.
@@ -211,153 +212,156 @@ void setup()
 
   Serial.println("Start setup");
   Serial.println();
-
-  // Check for UM982
-  uint32_t baudrate = 0;
-  for (uint32_t i = 0; i < nrBaudrates; i++)
+  
+  if (um982Autoconfig) // Automatically detect and configure UM982
   {
-    baudrate = baudrates[i];
-    Serial.print(F("Checking for UM982 at baudrate: "));
-    Serial.println(baudrate);
-    SerialGPS->begin(baudrate);
-    // Increase the size of the serial buffer to hold longer UM982 config messages
-    SerialGPS->addMemoryForRead(tmpGPSrxbuffer, tmp_serial_buffer_size);
-    SerialGPS->addMemoryForWrite(tmpGPStxbuffer, tmp_serial_buffer_size);
-    delay(500);
-    SerialGPS->write("VERSION\r\n");
-    delay(100);
-    while (SerialGPS->available())
+    // Check for UM982
+    uint32_t baudrate = 0;
+    for (uint32_t i = 0; i < nrBaudrates; i++)
     {
-      char incoming[100];
-      SerialGPS->readBytesUntil('\n', incoming, 100);
-      // Serial.println(incoming);
-      if (strstr(incoming, "UM982") != NULL)
+      baudrate = baudrates[i];
+      Serial.print(F("Checking for UM982 at baudrate: "));
+      Serial.println(baudrate);
+      SerialGPS->begin(baudrate);
+      // Increase the size of the serial buffer to hold longer UM982 config messages
+      SerialGPS->addMemoryForRead(tmpGPSrxbuffer, tmp_serial_buffer_size);
+      SerialGPS->addMemoryForWrite(tmpGPStxbuffer, tmp_serial_buffer_size);
+      delay(500);
+      SerialGPS->write("VERSION\r\n");
+      delay(100);
+      while (SerialGPS->available())
       {
-        if (baudrate != 460800)
+        char incoming[100];
+        SerialGPS->readBytesUntil('\n', incoming, 100);
+        // Serial.println(incoming);
+        if (strstr(incoming, "UM982") != NULL)
         {
-          Serial.println("UM982 baudrate wrong for AOG. Setting to 460800 bps for AOG");
-          SerialGPS->write("CONFIG COM1 460800\r\n");
-          delay(100);
-          SerialGPS->begin(baudGPS);
+          if (baudrate != 460800)
+          {
+            Serial.println("UM982 baudrate wrong for AOG. Setting to 460800 bps for AOG");
+            SerialGPS->write("CONFIG COM1 460800\r\n");
+            delay(100);
+            SerialGPS->begin(baudGPS);
+          }
+          gotUM982 = true;
+          break;
         }
-        gotUM982 = true;
-        break;
+        if (gotUM982)
+        {
+          break;
+        }
       }
       if (gotUM982)
       {
         break;
       }
     }
+
+    // Configure UM982
     if (gotUM982)
     {
-      break;
-    }
-  }
+      SerialGPS->write("CONFIG\r\n"); // Request the UM982 Configuration
+      delay(200);
 
-  // Configure UM982
-  if (gotUM982)
-  {
-    SerialGPS->write("CONFIG\r\n"); // Request the UM982 Configuration
-    delay(200);
-
-    while (SerialGPS->available() && !setUM982)
-    {
-      char incoming[100];
-      SerialGPS->readBytesUntil('\n', incoming, 100);
-      // Serial.println(incoming);
-
-      // Check the "UM982 configured" flag.
-      if (strstr(incoming, "CONFIG ANTENNADELTAHEN") != NULL)
+      while (SerialGPS->available() && !setUM982)
       {
-        Serial.println("Got the config line");
-        if (strstr(incoming, "ANTENNADELTAHEN 0.0099 0.0099 0.0099") != NULL)
-        {
-          Serial.println("And it is already configured");
-          Serial.println();
+        char incoming[100];
+        SerialGPS->readBytesUntil('\n', incoming, 100);
+        // Serial.println(incoming);
 
-          // Reset serial buffer size
-          SerialGPS->addMemoryForRead(GPSrxbuffer, serial_buffer_size);
-          SerialGPS->addMemoryForWrite(GPStxbuffer, serial_buffer_size);
-          setUM982 = true;
-        }
-        else
+        // Check the "UM982 configured" flag.
+        if (strstr(incoming, "CONFIG ANTENNADELTAHEN") != NULL)
         {
-          Serial.println("And it is not already configured");
-
-          // Clear out the serial channel
-          SerialGPS->write("UNLOGALL\r\n");
-          while ((SerialGPS->available()))
+          Serial.println("Got the config line");
+          if (strstr(incoming, "ANTENNADELTAHEN 0.0099 0.0099 0.0099") != NULL)
           {
-            SerialGPS->read();
+            Serial.println("And it is already configured");
+            Serial.println();
+
+            // Reset serial buffer size
+            SerialGPS->addMemoryForRead(GPSrxbuffer, serial_buffer_size);
+            SerialGPS->addMemoryForWrite(GPStxbuffer, serial_buffer_size);
+            setUM982 = true;
           }
-          // Set UM982 operating mode
-          Serial.println("Setting rover mode");
-          SerialGPS->write("MODE ROVER SURVEY\r\n");
-          delay(100);
+          else
+          {
+            Serial.println("And it is not already configured");
 
-          // Set heading to variablelength
-          Serial.println("Setting heading to variablelength");
-          SerialGPS->write("CONFIG HEADING VARIABLELENGTH\r\n");
-          delay(100);
+            // Clear out the serial channel
+            SerialGPS->write("UNLOGALL\r\n");
+            while ((SerialGPS->available()))
+            {
+              SerialGPS->read();
+            }
+            // Set UM982 operating mode
+            Serial.println("Setting rover mode");
+            SerialGPS->write("MODE ROVER SURVEY\r\n");
+            delay(100);
 
-          // Set heading smoothing
-          Serial.println("Setting heading smoothing");
-          SerialGPS->write("CONFIG SMOOTH HEADING 10\r\n");
-          delay(100);
+            // Set heading to variablelength
+            Serial.println("Setting heading to variablelength");
+            SerialGPS->write("CONFIG HEADING VARIABLELENGTH\r\n");
+            delay(100);
 
-          // Set rtk height smoothing
-          Serial.println("Setting rtkheight smoothing");
-          SerialGPS->write("CONFIG SMOOTH RTKHEIGHT 10\r\n");
-          delay(100);
+            // Set heading smoothing
+            Serial.println("Setting heading smoothing");
+            SerialGPS->write("CONFIG SMOOTH HEADING 10\r\n");
+            delay(100);
 
-          // Set COM1 to 460800
-          Serial.println("Setting COM1 to 460800 bps");
-          SerialGPS->write("CONFIG COM1 460800\r\n");
-          delay(100);
+            // Set rtk height smoothing
+            Serial.println("Setting rtkheight smoothing");
+            SerialGPS->write("CONFIG SMOOTH RTKHEIGHT 10\r\n");
+            delay(100);
 
-          // Set COM2 to 460800
-          Serial.println("Setting COM2 to 460800 bps");
-          SerialGPS->write("CONFIG COM2 460800\r\n");
-          delay(100);
+            // Set COM1 to 460800
+            Serial.println("Setting COM1 to 460800 bps");
+            SerialGPS->write("CONFIG COM1 460800\r\n");
+            delay(100);
 
-          // Set COM3 to 460800
-          Serial.println("Setting COM3 to 460800 bps");
-          SerialGPS->write("CONFIG COM3 460800\r\n");
-          delay(100);
+            // Set COM2 to 460800
+            Serial.println("Setting COM2 to 460800 bps");
+            SerialGPS->write("CONFIG COM2 460800\r\n");
+            delay(100);
 
-          // Set GGA message and rate
-          Serial.println("Setting GGA");
-          SerialGPS->write("GPGGA COM1 0.1\r\n");
-          delay(100);
+            // Set COM3 to 460800
+            Serial.println("Setting COM3 to 460800 bps");
+            SerialGPS->write("CONFIG COM3 460800\r\n");
+            delay(100);
 
-          // Set VTG message and rate
-          Serial.println("Setting VTG");
-          SerialGPS->write("GPVTG COM1 0.1\r\n");
-          delay(100);
+            // Set GGA message and rate
+            Serial.println("Setting GGA");
+            SerialGPS->write("GPGGA COM1 0.1\r\n");
+            delay(100);
 
-          // Set HPR message and rate
-          Serial.println("Setting HPR");
-          SerialGPS->write("GPHPR COM1 0.1\r\n");
-          delay(100);
+            // Set VTG message and rate
+            Serial.println("Setting VTG");
+            SerialGPS->write("GPVTG COM1 0.1\r\n");
+            delay(100);
 
-          // Setting the flag to signal UM982 is configured for AOG
-          Serial.println("Setting UM982 configured flag");
-          SerialGPS->write("CONFIG ANTENNADELTAHEN 0.0099 0.0099 0.0099\r\n");
-          delay(100);
+            // Set HPR message and rate
+            Serial.println("Setting HPR");
+            SerialGPS->write("GPHPR COM1 0.1\r\n");
+            delay(100);
 
-          // Saving the configuration in the UM982
-          Serial.println("Saving the configuration");
-          SerialGPS->write("SAVECONFIG\r\n");
-          Serial.println();
-          delay(100);
+            // Setting the flag to signal UM982 is configured for AOG
+            Serial.println("Setting UM982 configured flag");
+            SerialGPS->write("CONFIG ANTENNADELTAHEN 0.0099 0.0099 0.0099\r\n");
+            delay(100);
 
-          // Reset the serial buffer size
-          SerialGPS->addMemoryForRead(GPSrxbuffer, serial_buffer_size);
-          SerialGPS->addMemoryForWrite(GPStxbuffer, serial_buffer_size);
+            // Saving the configuration in the UM982
+            Serial.println("Saving the configuration");
+            SerialGPS->write("SAVECONFIG\r\n");
+            Serial.println();
+            delay(100);
+
+            // Reset the serial buffer size
+            SerialGPS->addMemoryForRead(GPSrxbuffer, serial_buffer_size);
+            SerialGPS->addMemoryForWrite(GPStxbuffer, serial_buffer_size);
+          }
         }
       }
     }
-  }
+  } // End of UM982 auto detect and configure
 
   pinMode(GGAReceivedLED, OUTPUT);
   pinMode(Power_on_LED, OUTPUT);
